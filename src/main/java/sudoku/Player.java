@@ -12,9 +12,10 @@ import akka.actor.typed.javadsl.Receive;
  */
 public class Player extends AbstractBehavior<Player.Protocol>
 {
+	/** Protocol interface for input messages */
 	public interface Protocol {}
 
-	/** Message for starting the Player. */
+	/** Message for creating the Player. */
 	public static class CreateMsg implements Protocol
 	{
 		final int _playerId;

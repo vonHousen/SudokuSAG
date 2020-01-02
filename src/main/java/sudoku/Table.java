@@ -55,7 +55,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 		}
 	}
 
-	/** Custom exception thrown when 4th Player is about to be registered to this table */
+	/** Custom exception thrown when 4th Player is about to be registered to this table. */
 	public static class IncorrectRegisterException extends RuntimeException
 	{
 		public IncorrectRegisterException(String msg)

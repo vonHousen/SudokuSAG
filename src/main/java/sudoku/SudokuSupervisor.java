@@ -34,7 +34,7 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 
 	/** Sudoku riddle to be solved by the app. */
 	private Sudoku _sudoku;
-	/** Child Teacher agent */
+	/** Child Teacher agent. */
 	private ActorRef<Teacher.Protocol> _teacher;
 
 	/**

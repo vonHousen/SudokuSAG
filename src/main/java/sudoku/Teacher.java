@@ -15,7 +15,7 @@ import java.util.Map;
  */
 public class Teacher extends AbstractBehavior<Teacher.Protocol>
 {
-	/** Protocol interface for input messages */
+	/** Protocol interface for input messages. */
 	public interface Protocol {}
 
 	/** Message for creating the Teacher. */
@@ -31,9 +31,9 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		}
 	}
 
-	/** Sudoku riddle to be solved */
+	/** Sudoku riddle to be solved. */
 	private final Sudoku _sudoku;
-	/** Data structure for storing all Players - child agents */
+	/** Data structure for storing all Players - child agents. */
 	private final Map<Integer, ActorRef<Player.Protocol>> _players = new HashMap<>();
 
 	/**

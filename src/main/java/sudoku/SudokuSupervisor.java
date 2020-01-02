@@ -17,6 +17,9 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 {
 	public interface Command {}
 
+	/**
+	 * Message for controlled termination of the agent.
+	 */
 	public static final class TerminateMsg implements Command
 	{
 		final long _requestId;
@@ -29,8 +32,16 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 		}
 	}
 
+	/**
+	 * Sudoku riddle to be solved by the app.
+	 */
 	private Sudoku sudoku;
 
+	/**
+	 * Public method that calls private constructor.
+	 * Existance required by Akka.
+	 * @return N/A
+	 */
 	public static Behavior<SudokuSupervisor.Command> create()
 	{
 		return Behaviors.setup(SudokuSupervisor::new);
@@ -42,6 +53,11 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 		context.getLog().info("SudokuSupervisor started");
 	}
 
+	/**
+	 * Main method controlling incoming messages.
+	 * Existence required by Akka.
+	 * @return N/A
+	 */
 	@Override
 	public Receive<SudokuSupervisor.Command> createReceive()
 	{
@@ -51,12 +67,23 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 				.build();
 	}
 
+	/**
+	 * Handler of PostStop signal.
+	 * Expected after stopping SudokuSupervisor agent.
+	 * @return N/A
+	 */
 	private SudokuSupervisor onPostStop()
 	{
 		getContext().getLog().info("SudokuSAG app stopped");
 		return this;
 	}
 
+	/**
+	 * Behaviour towards TerminateMsg message.
+	 * Action performed on termination.
+	 * @param terminateMsg	termination message
+	 * @return N/A
+	 */
 	private Behavior<SudokuSupervisor.Command> onTermination(TerminateMsg terminateMsg)
 	{
 		getContext().getLog().info("SudokuSupervisor has been terminated");
@@ -65,6 +92,9 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 		return this;
 	}
 
+	/**
+	 * Action of reading sudoku from file.
+	 */
 	private void readSudoku()
 	{
 		sudoku = new Sudoku();	// TODO implement reading sudoku from file

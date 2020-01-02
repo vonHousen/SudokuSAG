@@ -34,8 +34,8 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	{
 		final ActorRef<Player.Protocol> _playerToRegister;
 		final int _playerId;
-		final ActorRef<Table.RegisteredMsg> _replyTo;
-		public RegisterPlayerMsg(ActorRef<Player.Protocol> playerToRegister, int playerId, ActorRef<Table.RegisteredMsg> replyTo)
+		final ActorRef<RegisteredMsg> _replyTo;
+		public RegisterPlayerMsg(ActorRef<Player.Protocol> playerToRegister, int playerId, ActorRef<RegisteredMsg> replyTo)
 		{
 			this._playerToRegister = playerToRegister;
 			this._playerId = playerId;
@@ -64,6 +64,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 		}
 	}
 
+	/** Global ID of the Table */
 	private final int _TableId;
 	/** Data structure for storing Players - agents registered to this Table. */
 	private Map<Integer, ActorRef<Player.Protocol>> _players;

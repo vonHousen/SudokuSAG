@@ -6,6 +6,8 @@ import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Agent that interprets development of the playing agents and rewards them. Singleton.
@@ -15,44 +17,64 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 {
 	public interface Protocol {}
 
-	/**
-	 * Message for starting the Teacher.
-	 */
-	public static class StartMsg implements Protocol
+	/** Message for creating the Teacher. */
+	public static class CreateMsg implements Protocol
 	{
-		final String name;
+		final String _name;
+		final Sudoku _sudoku;
 
-		public StartMsg(String name)
+		public CreateMsg(String name, Sudoku sudoku)
 		{
-			this.name = name;
+			this._name = name;
+			this._sudoku = sudoku;
 		}
 	}
 
-	private final Sudoku sudoku;
+	private final Sudoku _sudoku;
+	private final Map<Integer, ActorRef<Player.Protocol>> _players = new HashMap<>();
 
-	public static Behavior<Protocol> create(Sudoku sudoku)
+	/**
+	 * Public method that calls private constructor.
+	 * Existence required by Akka.
+	 * @param createMsg 	message initialising the start of the agent
+	 * @return N/A
+	 */
+	public static Behavior<Protocol> create(CreateMsg createMsg)
 	{
-		return Behaviors.setup(context -> new Teacher(context, sudoku));
+		return Behaviors.setup(context -> new Teacher(context, createMsg));
 	}
 
-	private Teacher(ActorContext<Protocol> context, Sudoku sudoku)
+	private Teacher(ActorContext<Protocol> context, CreateMsg createMsg)
 	{
 		super(context);
-		this.sudoku = sudoku;
-		context.getLog().info("Teacher started");
+		this._sudoku = createMsg._sudoku;
+		context.getLog().info("Teacher created");
+
+		spawnPlayers();
 	}
 
+	/**
+	 * Main method controlling incoming messages.
+	 * Existence required by Akka.
+	 * @return N/A
+	 */
 	@Override
 	public Receive<Protocol> createReceive()
 	{
 		return newReceiveBuilder()
-				.onMessage(StartMsg.class, this::onStart)
 				.build();
 	}
 
-	private Behavior<Protocol> onStart(StartMsg command)
+	private void spawnPlayers()
 	{
-		return this;
-	}
+		for(int playerId = 0; playerId < 3 * _sudoku.getSize(); playerId++)
+		{
+			// TODO in fact spawn Row / Column / Block
+			ActorRef<Player.Protocol> newPlayer =
+					getContext().spawn(Player.create(new Player.CreateMsg(playerId)), "player-" + playerId);
+			_players.put(playerId, newPlayer);
 
+			// getContext().watchWith(newPlayer, new DeviceGroupTerminated(groupId)); TODO
+		}
+	}
 }

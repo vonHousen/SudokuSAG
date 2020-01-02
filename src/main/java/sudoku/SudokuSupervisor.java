@@ -39,7 +39,7 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 
 	/**
 	 * Public method that calls private constructor.
-	 * Existance required by Akka.
+	 * Existence required by Akka.
 	 * @return N/A
 	 */
 	public static Behavior<SudokuSupervisor.Command> create()
@@ -52,7 +52,8 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 		super(context);
 		context.getLog().info("SudokuSupervisor started");
 		readSudoku();
-		_teacher = getContext().spawn(Teacher.create(_sudoku), "Teacher");
+		_teacher = getContext()
+				.spawn(Teacher.create(new Teacher.CreateMsg("TheOnlyTeacher", _sudoku)), "teacher");
 		// getContext().watchWith(_teacher, new TerminateMsg(1L, getContext().getSelf())); TODO
 	}
 

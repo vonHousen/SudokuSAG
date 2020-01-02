@@ -42,6 +42,7 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 			this._replyTo = replyTo;
 		}
 	}
+
 	/** Message when Teacher is going to be restarted. */
 	public static class TeacherWillRestartMsg implements Command
 	{
@@ -105,8 +106,7 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 	 */
 	private SudokuSupervisor onPostStop()
 	{
-		getContext().stop(_teacher);
-		getContext().getLog().info("SudokuSAG app stopped");
+		getContext().getLog().info("SudokuSupervisor stopped.");
 		return this;
 	}
 
@@ -118,10 +118,9 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 	 */
 	private Behavior<SudokuSupervisor.Command> onTermination(TerminateMsg terminateMsg)
 	{
-		getContext().getLog().info("SudokuSupervisor has been terminated");
-		if (terminateMsg._replyTo != null)
-			terminateMsg._replyTo.tell("SudokuSupervisor has been successfully terminated");
-		return this;
+		getContext().getLog().info("SudokuSupervisor will be terminated.");
+		terminateMsg._replyTo.tell("I will be terminated.");
+		return Behaviors.stopped();
 	}
 
 	/**

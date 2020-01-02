@@ -25,6 +25,10 @@ public class SudokuStartTest
 		TestProbe<String> testProbe = testKit.createTestProbe();
 		ActorRef<SudokuSupervisor.Command> guardian = testKit.spawn(SudokuSupervisor.create(),"test2");
 		guardian.tell(new SudokuSupervisor.TerminateMsg(0L, testProbe.getRef()));
-		testProbe.expectMessage("SudokuSupervisor has been successfully terminated");
+		testProbe.expectMessage("I will be terminated.");
+
+		// below is just printout control
+		try{Thread.sleep(250);} catch (Exception e){}
+		System.out.println("======================================> Test finished");
 	}
 }

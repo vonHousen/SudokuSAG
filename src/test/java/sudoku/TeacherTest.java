@@ -6,8 +6,6 @@ import akka.actor.typed.*;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import java.util.concurrent.TimeUnit;
-
 import static junit.framework.TestCase.assertEquals;
 
 public class TeacherTest

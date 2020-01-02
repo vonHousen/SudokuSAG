@@ -93,7 +93,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	 */
 	private Teacher onPostStop()
 	{
-		getContext().getLog().info("Teacher is stopped");
+		getContext().getLog().info("Teacher stopped");
 		return this;
 	}
 

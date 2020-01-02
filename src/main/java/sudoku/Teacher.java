@@ -34,7 +34,9 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	/** Sudoku riddle to be solved. */
 	private final Sudoku _sudoku;
 	/** Data structure for storing all Players - child agents. */
-	private final Map<Integer, ActorRef<Player.Protocol>> _players = new HashMap<>();
+	private final Map<Integer, ActorRef<Player.Protocol>> _players;
+	/** Data structure for storing all Tables - child agents. */
+	private final Map<Integer, ActorRef<Table.Protocol>> _tables;
 
 	/**
 	 * Public method that calls private constructor.
@@ -51,7 +53,9 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	{
 		super(context);
 		this._sudoku = createMsg._sudoku;
-		context.getLog().info("Teacher created");
+		this._players = new HashMap<>();
+		this._tables = new HashMap<>();
+		// context.getLog().info("Teacher created");			// left for debugging only
 
 		spawnPlayers();
 	}
@@ -68,6 +72,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 				.build();
 	}
 
+	/** Action of spawning all child Players agents. */
 	private void spawnPlayers()
 	{
 		for(int playerId = 0; playerId < 3 * _sudoku.getSize(); playerId++)
@@ -78,6 +83,19 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 			_players.put(playerId, newPlayer);
 
 			// getContext().watchWith(newPlayer, new DeviceGroupTerminated(groupId)); TODO
+		}
+	}
+
+	/** Action of spawning all child Tables agents. */
+	private void spawnTables()
+	{
+		for(int tableId = 0; tableId < 3*3 * _sudoku.getSize(); tableId++)
+		{
+			ActorRef<Table.Protocol> newTable =
+					getContext().spawn(Table.create(new Table.CreateMsg(tableId)), "table-" + tableId);
+			_tables.put(tableId, newTable);
+
+			// getContext().watchWith(newTable, new DeviceGroupTerminated(groupId)); TODO
 		}
 	}
 }

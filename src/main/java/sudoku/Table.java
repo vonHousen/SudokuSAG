@@ -7,26 +7,26 @@ import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 
 /**
- * Playing agent, who actually learns to solve Sudoku.
+ * Table agent, who moderates negotiations between 3 players for choosing the best number in the Sudoku cell.
  * A child of the Teacher agent.
  */
-public class Player extends AbstractBehavior<Player.Protocol>
+public class Table extends AbstractBehavior<Table.Protocol>
 {
 	/** Protocol interface for input messages. */
 	public interface Protocol {}
 
-	/** Message for creating the Player. */
+	/** Message for creating the Table. */
 	public static class CreateMsg implements Protocol
 	{
-		final int _playerId;
+		final int _TableId;
 
-		public CreateMsg(int playerId)
+		public CreateMsg(int TableId)
 		{
-			this._playerId = playerId;
+			this._TableId = TableId;
 		}
 	}
 
-	private final int _playerId;
+	private final int _TableId;
 
 	/**
 	 * Public method that calls private constructor.
@@ -34,16 +34,16 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	 * @param createMsg 	message initialising the start of the agent
 	 * @return N/A
 	 */
-	public static Behavior<Player.Protocol> create(CreateMsg createMsg)
+	public static Behavior<Table.Protocol> create(CreateMsg createMsg)
 	{
-		return Behaviors.setup(context -> new Player(context, createMsg));
+		return Behaviors.setup(context -> new Table(context, createMsg));
 	}
 
-	private Player(ActorContext<Protocol> context, CreateMsg createMsg)
+	private Table(ActorContext<Protocol> context, CreateMsg createMsg)
 	{
 		super(context);
-		_playerId = createMsg._playerId;
-		// context.getLog().info("Player {} created", _playerId);		// left for debugging only
+		_TableId = createMsg._TableId;
+		// context.getLog().info("Table {} created", _TableId);			// left for debugging only
 	}
 
 	/**

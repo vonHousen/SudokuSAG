@@ -33,7 +33,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	 * Public method that calls private constructor.
 	 * Existence required by Akka.
 	 * @param createMsg 	message initialising the start of the agent
-	 * @return N/A
+	 * @return 		wrapped Behavior
 	 */
 	public static Behavior<Player.Protocol> create(CreateMsg createMsg)
 	{
@@ -50,7 +50,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	/**
 	 * Main method controlling incoming messages.
 	 * Existence required by Akka.
-	 * @return N/A
+	 * @return 		wrapped Behavior
 	 */
 	@Override
 	public Receive<Protocol> createReceive()
@@ -63,7 +63,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	/**
 	 * Handler of PostStop signal.
 	 * Expected after stopping Player agent.
-	 * @return N/A
+	 * @return 		wrapped Behavior
 	 */
 	private Player onPostStop()
 	{

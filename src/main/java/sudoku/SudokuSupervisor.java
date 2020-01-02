@@ -63,7 +63,7 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 	/**
 	 * Public method that calls private constructor.
 	 * Existence required by Akka.
-	 * @return N/A
+	 * @return 		wrapped Behavior
 	 */
 	public static Behavior<SudokuSupervisor.Command> create()
 	{
@@ -78,7 +78,8 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 		_teacher = context.spawn(
 				Behaviors.supervise(
 						Teacher.create(new Teacher.CreateMsg("TheOnlyTeacher", _sudoku, context.getSelf()))
-				).onFailure(SupervisorStrategy.restart()), "teacher"
+				).onFailure(SupervisorStrategy.restart())
+				, "teacher"
 		);
 		// getContext().watchWith(_teacher, new TerminateMsg(1L, getContext().getSelf())); TODO
 	}
@@ -86,7 +87,7 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 	/**
 	 * Main method controlling incoming messages.
 	 * Existence required by Akka.
-	 * @return N/A
+	 * @return 		wrapped Behavior
 	 */
 	@Override
 	public Receive<SudokuSupervisor.Command> createReceive()
@@ -102,7 +103,7 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 	/**
 	 * Handler of PostStop signal.
 	 * Expected after stopping SudokuSupervisor agent.
-	 * @return N/A
+	 * @return 		wrapped Behavior
 	 */
 	private SudokuSupervisor onPostStop()
 	{
@@ -114,7 +115,7 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 	 * Behaviour towards TerminateMsg message.
 	 * Action performed on termination.
 	 * @param terminateMsg	termination message
-	 * @return N/A
+	 * @return 		wrapped Behavior
 	 */
 	private Behavior<SudokuSupervisor.Command> onTermination(TerminateMsg terminateMsg)
 	{
@@ -127,7 +128,7 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 	 * Behaviour towards SimulateTeacherCrashMsg message.
 	 * Agent tells the Teacher to simulate crash.
 	 * @param msg	 message simulating crash
-	 * @return N/A
+	 * @return 		wrapped Behavior
 	 */
 	private Behavior<SudokuSupervisor.Command> onSimulateTeacherCrash(SimulateTeacherCrashMsg msg)
 	{
@@ -140,7 +141,7 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 	 * Behaviour towards TeacherWillRestartMsg message.
 	 * The Teacher responds just before restart.
 	 * @param msg	 respond just before restart
-	 * @return N/A
+	 * @return 		wrapped Behavior
 	 */
 	private Behavior<SudokuSupervisor.Command> onTeacherWillRestartMsg(TeacherWillRestartMsg msg)
 	{

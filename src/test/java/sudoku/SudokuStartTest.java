@@ -3,10 +3,6 @@ package sudoku;
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import akka.actor.testkit.typed.javadsl.TestProbe;
 import akka.actor.typed.*;
-import akka.actor.typed.javadsl.AbstractBehavior;
-import akka.actor.typed.javadsl.ActorContext;
-import akka.actor.typed.javadsl.Behaviors;
-import akka.actor.typed.javadsl.Receive;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -18,8 +14,17 @@ public class SudokuStartTest
 	@Test
 	public void testSimpleStart()
 	{
-		TestProbe<SudokuGuardian.StartMsg> testProbe = testKit.createTestProbe();
-		ActorRef<SudokuGuardian.StartMsg> guardian = testKit.spawn(SudokuGuardian.create(),"starter");
+		TestProbe<Void> testProbe = testKit.createTestProbe();
+		ActorRef<SudokuSupervisor.Command> guardian = testKit.spawn(SudokuSupervisor.create(),"test1");
 		testProbe.expectNoMessage();
+	}
+
+	@Test
+	public void testSupervisorTermination()
+	{
+		TestProbe<String> testProbe = testKit.createTestProbe();
+		ActorRef<SudokuSupervisor.Command> guardian = testKit.spawn(SudokuSupervisor.create(),"test2");
+		guardian.tell(new SudokuSupervisor.TerminateMsg(0L, testProbe.getRef()));
+		testProbe.expectMessage("SudokuSupervisor has been successfully terminated");
 	}
 }

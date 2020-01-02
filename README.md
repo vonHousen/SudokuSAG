@@ -1,5 +1,5 @@
 # SudokuSAG
 Multi-agent system solving Sudoku riddle
 
-Documentation availible at:
+## Documentation
 https://vonhousen.github.io/SudokuSAG/

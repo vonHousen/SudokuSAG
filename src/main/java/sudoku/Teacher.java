@@ -2,6 +2,8 @@ package sudoku;
 
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
+import akka.actor.typed.PostStop;
+import akka.actor.typed.PreRestart;
 import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
@@ -23,16 +25,23 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	{
 		final String _name;
 		final Sudoku _sudoku;
+		final ActorRef<SudokuSupervisor.Command> _replyTo;
 
-		public CreateMsg(String name, Sudoku sudoku)
+		public CreateMsg(String name, Sudoku sudoku, ActorRef<SudokuSupervisor.Command> replyTo)
 		{
 			this._name = name;
 			this._sudoku = sudoku;
+			this._replyTo = replyTo;
 		}
 	}
 
+	/** Message for making the Teacher crash. */
+	public static class SimulateCrashMsg implements Protocol {}
+
 	/** Sudoku riddle to be solved. */
 	private final Sudoku _sudoku;
+	/** Parent agent */
+	private final ActorRef<SudokuSupervisor.Command> _parent;
 	/** Data structure for storing all Players - child agents. */
 	private final Map<Integer, ActorRef<Player.Protocol>> _players;
 	/** Data structure for storing all Tables - child agents. */
@@ -53,11 +62,13 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	{
 		super(context);
 		this._sudoku = createMsg._sudoku;
+		this._parent = createMsg._replyTo;
 		this._players = new HashMap<>();
 		this._tables = new HashMap<>();
-		// context.getLog().info("Teacher created");			// left for debugging only
+		context.getLog().info("Teacher created");			// left for debugging only
 
 		spawnPlayers();
+		spawnTables();
 	}
 
 	/**
@@ -69,11 +80,26 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	public Receive<Protocol> createReceive()
 	{
 		return newReceiveBuilder()
+				.onMessage(SimulateCrashMsg.class, this::onSimulateCrash)
+				.onSignal(PreRestart.class, signal -> preRestart())
+				.onSignal(PostStop.class, signal -> onPostStop())
 				.build();
 	}
 
+	/**
+	 * Handler of PostStop signal.
+	 * Expected after stopping agent.
+	 * @return N/A
+	 */
+	private Teacher onPostStop()
+	{
+		getContext().getLog().info("Teacher is stopped");
+		return this;
+	}
+
+
 	/** Action of spawning all child Players agents. */
-	private void spawnPlayers()
+	private Behavior<Protocol> spawnPlayers()
 	{
 		for(int playerId = 0; playerId < 3 * _sudoku.getSize(); playerId++)
 		{
@@ -84,10 +110,11 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 
 			// getContext().watchWith(newPlayer, new DeviceGroupTerminated(groupId)); TODO
 		}
+		return this;
 	}
 
 	/** Action of spawning all child Tables agents. */
-	private void spawnTables()
+	private Behavior<Protocol>  spawnTables()
 	{
 		for(int tableId = 0; tableId < 3*3 * _sudoku.getSize(); tableId++)
 		{
@@ -97,5 +124,30 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 
 			// getContext().watchWith(newTable, new DeviceGroupTerminated(groupId)); TODO
 		}
+		return this;
 	}
+
+	/**
+	 * Behaviour towards crashing message - simulates Teacher crashing.
+	 * @param simulateCrashMsg	crashing message
+	 * @return N/A
+	 */
+	private Behavior<Teacher.Protocol> onSimulateCrash(SimulateCrashMsg simulateCrashMsg)
+	{
+		System.out.println("Teacher is simulating crash.");
+		throw new RuntimeException("I crashed!");
+	}
+
+	/**
+	 * Handler of PreRestart signal.
+	 * Expected just before restarting the agent.
+	 * @return N/A
+	 */
+	private Teacher preRestart()
+	{
+		getContext().getLog().info("Teacher will be restarted.");
+		_parent.tell(new SudokuSupervisor.TeacherWillRestartMsg("I will be restarted."));
+		return this;
+	}
+
 }

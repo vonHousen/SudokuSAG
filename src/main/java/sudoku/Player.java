@@ -1,6 +1,7 @@
 package sudoku;
 
 import akka.actor.typed.Behavior;
+import akka.actor.typed.PostStop;
 import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
@@ -55,6 +56,19 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	public Receive<Protocol> createReceive()
 	{
 		return newReceiveBuilder()
+				.onSignal(PostStop.class, signal -> onPostStop())
 				.build();
 	}
+
+	/**
+	 * Handler of PostStop signal.
+	 * Expected after stopping Player agent.
+	 * @return N/A
+	 */
+	private Player onPostStop()
+	{
+		// getContext().getLog().info("Player {} stopped", _playerId); 	// left for debugging only
+		return this;
+	}
+
 }

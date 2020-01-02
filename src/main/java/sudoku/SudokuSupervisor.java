@@ -3,6 +3,7 @@ package sudoku;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.PostStop;
+import akka.actor.typed.SupervisorStrategy;
 import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
@@ -32,10 +33,31 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 		}
 	}
 
+	/** Message for making the Teacher crash. */
+	public static class SimulateTeacherCrashMsg implements Command
+	{
+		final ActorRef<String> _replyTo;
+		public SimulateTeacherCrashMsg(ActorRef<String> replyTo)
+		{
+			this._replyTo = replyTo;
+		}
+	}
+	/** Message when Teacher is going to be restarted. */
+	public static class TeacherWillRestartMsg implements Command
+	{
+		final String _msg;
+		public TeacherWillRestartMsg(String msg)
+		{
+			this._msg = msg;
+		}
+	}
+
 	/** Sudoku riddle to be solved by the app. */
 	private Sudoku _sudoku;
 	/** Child Teacher agent. */
 	private ActorRef<Teacher.Protocol> _teacher;
+	/** Parent - agent for debugging when simulating Teacher's crash. */
+	private ActorRef<String> _simulationParent;
 
 	/**
 	 * Public method that calls private constructor.
@@ -52,8 +74,11 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 		super(context);
 		context.getLog().info("SudokuSupervisor started");
 		readSudoku();
-		_teacher = getContext()
-				.spawn(Teacher.create(new Teacher.CreateMsg("TheOnlyTeacher", _sudoku)), "teacher");
+		_teacher = context.spawn(
+				Behaviors.supervise(
+						Teacher.create(new Teacher.CreateMsg("TheOnlyTeacher", _sudoku, context.getSelf()))
+				).onFailure(SupervisorStrategy.restart()), "teacher"
+		);
 		// getContext().watchWith(_teacher, new TerminateMsg(1L, getContext().getSelf())); TODO
 	}
 
@@ -67,6 +92,8 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 	{
 		return newReceiveBuilder()
 				.onMessage(TerminateMsg.class, this::onTermination)
+				.onMessage(SimulateTeacherCrashMsg.class, this::onSimulateTeacherCrash)
+				.onMessage(TeacherWillRestartMsg.class, this::onTeacherWillRestartMsg)
 				.onSignal(PostStop.class, signal -> onPostStop())
 				.build();
 	}
@@ -78,6 +105,7 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 	 */
 	private SudokuSupervisor onPostStop()
 	{
+		getContext().stop(_teacher);
 		getContext().getLog().info("SudokuSAG app stopped");
 		return this;
 	}
@@ -93,6 +121,31 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 		getContext().getLog().info("SudokuSupervisor has been terminated");
 		if (terminateMsg._replyTo != null)
 			terminateMsg._replyTo.tell("SudokuSupervisor has been successfully terminated");
+		return this;
+	}
+
+	/**
+	 * Behaviour towards SimulateTeacherCrashMsg message.
+	 * Agent tells the Teacher to simulate crash.
+	 * @param msg	 message simulating crash
+	 * @return N/A
+	 */
+	private Behavior<SudokuSupervisor.Command> onSimulateTeacherCrash(SimulateTeacherCrashMsg msg)
+	{
+		_teacher.tell(new Teacher.SimulateCrashMsg());
+		_simulationParent = msg._replyTo;
+		return this;
+	}
+
+	/**
+	 * Behaviour towards TeacherWillRestartMsg message.
+	 * The Teacher responds just before restart.
+	 * @param msg	 respond just before restart
+	 * @return N/A
+	 */
+	private Behavior<SudokuSupervisor.Command> onTeacherWillRestartMsg(TeacherWillRestartMsg msg)
+	{
+		_simulationParent.tell(msg._msg);
 		return this;
 	}
 

@@ -10,7 +10,7 @@ public class SudokuStart
 {
 	public static void main(String[] args)
 	{
-		final ActorSystem<SudokuGuardian.Start> greeterMain = ActorSystem.create(SudokuGuardian.create(), "StartSudoku");
+		final ActorSystem<SudokuGuardian.StartMsg> greeterMain = ActorSystem.create(SudokuGuardian.create(), "StartSudoku");
 
 		try
 		{

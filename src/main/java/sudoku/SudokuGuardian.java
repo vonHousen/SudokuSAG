@@ -10,41 +10,41 @@ import akka.actor.typed.javadsl.Receive;
  * Simple agent-guardian of the whole multi-agent-system solving Sudoku.
  * Existence required by Akka.
  */
-public class SudokuGuardian extends AbstractBehavior<SudokuGuardian.Start>
+public class SudokuGuardian extends AbstractBehavior<SudokuGuardian.StartMsg>
 {
 	/**
 	 * Message for starting the system.
 	 */
-	public static class Start
+	public static class StartMsg
 	{
 		final String name;
 
-		public Start(String name)
+		public StartMsg(String name)
 		{
 			this.name = name;
 		}
 	}
 
-	public static Behavior<SudokuGuardian.Start> create()
+	public static Behavior<StartMsg> create()
 	{
 		return Behaviors.setup(SudokuGuardian::new);
 	}
 
-	private SudokuGuardian(ActorContext<SudokuGuardian.Start> context)
+	private SudokuGuardian(ActorContext<StartMsg> context)
 	{
 		super(context);
 		context.getLog().info("SudokuGuardian started");
 	}
 
 	@Override
-	public Receive<SudokuGuardian.Start> createReceive()
+	public Receive<StartMsg> createReceive()
 	{
 		return newReceiveBuilder()
-				.onMessage(SudokuGuardian.Start.class, this::onStart)
+				.onMessage(StartMsg.class, this::onStart)
 				.build();
 	}
 
-	private Behavior<SudokuGuardian.Start> onStart(SudokuGuardian.Start command)
+	private Behavior<StartMsg> onStart(StartMsg command)
 	{
 		return this;
 	}

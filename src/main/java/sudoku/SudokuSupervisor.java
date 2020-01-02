@@ -32,10 +32,10 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 		}
 	}
 
-	/**
-	 * Sudoku riddle to be solved by the app.
-	 */
-	private Sudoku sudoku;
+	/** Sudoku riddle to be solved by the app. */
+	private Sudoku _sudoku;
+	/** Child Teacher agent */
+	private ActorRef<Teacher.Protocol> _teacher;
 
 	/**
 	 * Public method that calls private constructor.
@@ -51,6 +51,9 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 	{
 		super(context);
 		context.getLog().info("SudokuSupervisor started");
+		readSudoku();
+		_teacher = getContext().spawn(Teacher.create(_sudoku), "Teacher");
+		// getContext().watchWith(_teacher, new TerminateMsg(1L, getContext().getSelf())); TODO
 	}
 
 	/**
@@ -93,10 +96,10 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 	}
 
 	/**
-	 * Action of reading sudoku from file.
+	 * Action of reading _sudoku from file.
 	 */
 	private void readSudoku()
 	{
-		sudoku = new Sudoku();	// TODO implement reading sudoku from file
+		_sudoku = new Sudoku();	// TODO implement reading _sudoku from file
 	}
 }

@@ -16,6 +16,7 @@ import akka.actor.typed.javadsl.Receive;
  */
 public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 {
+	/** Abstract interface for all commands (messages) passed to the Agent. */
 	public interface Command {}
 
 	/**

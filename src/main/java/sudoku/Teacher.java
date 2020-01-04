@@ -59,7 +59,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		return Behaviors.setup(context -> new Teacher(context, createMsg));
 	}
 
-	private Teacher(ActorContext<Protocol> context, CreateMsg createMsg)
+	public Teacher(ActorContext<Protocol> context, CreateMsg createMsg)
 	{
 		super(context);
 		this._sudoku = createMsg._sudoku;

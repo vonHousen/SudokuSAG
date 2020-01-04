@@ -24,10 +24,18 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	public static class CreateMsg implements Protocol
 	{
 		final int _playerId;
+		final Vector2d _playerPosition;
+		final Type _playerType;
+		final int[] _digitVector;
+		final boolean[] _digitMask;
 
-		public CreateMsg(int playerId)
+		public CreateMsg(int playerId, Vector2d playerPosition, Type playerType, int[] digitVector, boolean[] digitMask)
 		{
 			this._playerId = playerId;
+			this._playerPosition = playerPosition;
+			this._playerType = playerType;
+			this._digitVector = digitVector;
+			this._digitMask = digitMask;
 		}
 	}
 
@@ -35,12 +43,12 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	public static class RegisterTableMsg implements Protocol
 	{
 		final ActorRef<Table.Protocol> _tableToRegister;
-		final int _tableId;
+		final Vector2d _tablePos;
 		final ActorRef<RegisteredMsg> _replyTo;
-		public RegisterTableMsg(ActorRef<Table.Protocol> tableToRegister, int tableId, ActorRef<RegisteredMsg> replyTo)
+		public RegisterTableMsg(ActorRef<Table.Protocol> tableToRegister, Vector2d tablePos, ActorRef<RegisteredMsg> replyTo)
 		{
 			this._tableToRegister = tableToRegister;
-			this._tableId = tableId;
+			this._tablePos = tablePos;
 			this._replyTo = replyTo;
 		}
 	}
@@ -48,11 +56,11 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	/** Message sent out after registering a Table. */
 	public static class RegisteredMsg implements Protocol
 	{
-		final int _tableId;
+		final Vector2d _tablePos;
 		final boolean _isItDone;
-		public RegisteredMsg(int tableId, boolean isItDone)
+		public RegisteredMsg(Vector2d tablePos, boolean isItDone)
 		{
-			this._tableId = tableId;
+			this._tablePos = tablePos;
 			this._isItDone = isItDone;
 		}
 	}
@@ -66,11 +74,53 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		}
 	}
 
+	enum Type
+	{
+		COLUMN,
+		ROW,
+		SQUARE
+	}
+
 	/** Global ID of this Player */
 	private final int _playerId;
-	/** Data structure for storing Tables - agents registered to this Player. */
-	private Map<Integer, ActorRef<Table.Protocol>> _tables;
+	/** Data structure for storing Tables (agents registered to this Player) and internal sudoku digit indices */
+	private final Map<Vector2d, Pair<ActorRef<Table.Protocol>, Integer>> _tableIndex;
+	/** Structure containing awards and current digit vector */
+	private final AwardMemory _memory;
 
+	/** Add all keys to _tableIndex with correct index and actor reference set to null. */
+	private void fillTableIndex(Vector2d origin, Type t, boolean[] digitMask)
+	{
+		switch (t)
+		{
+			case COLUMN:
+				for (int i = 0; i < digitMask.length; ++i)
+				{
+					if (!digitMask[i])
+					{
+						_tableIndex.put(new Vector2d(origin.x, i), new Pair<ActorRef<Table.Protocol>, Integer>(null, i));
+					}
+				}
+				break;
+			case ROW:
+				for (int i = 0; i < digitMask.length; ++i)
+				{
+					if (!digitMask[i])
+					{
+						_tableIndex.put(new Vector2d(i, origin.y), new Pair<ActorRef<Table.Protocol>, Integer>(null, i));
+					}
+				}
+				break;
+			case SQUARE:
+				for (int i = 0; i < digitMask.length; ++i)
+				{
+					if (!digitMask[i])
+					{
+						_tableIndex.put(new Vector2d(origin.x + (i % digitMask.length), origin.y + (i / digitMask.length)), new Pair<ActorRef<Table.Protocol>, Integer>(null, i));
+					}
+				}
+		}
+	}
 
 	/**
 	 * Public method that calls private constructor.
@@ -83,11 +133,13 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		return Behaviors.setup(context -> new Player(context, createMsg));
 	}
 
-	private Player(ActorContext<Protocol> context, CreateMsg createMsg)
+	public Player(ActorContext<Protocol> context, CreateMsg createMsg)
 	{
 		super(context);
 		_playerId = createMsg._playerId;
-		_tables = new HashMap<>();
+		_tableIndex = new HashMap<>();
+		fillTableIndex(createMsg._playerPosition, createMsg._playerType, createMsg._digitMask);
+		_memory = new AwardMemory(createMsg._digitVector, createMsg._digitMask);
 		// context.getLog().info("Player {} created", _tableId);		// left for debugging only
 	}
 
@@ -107,27 +159,27 @@ public class Player extends AbstractBehavior<Player.Protocol>
 
 	/**
 	 * Registers new Table to this Player.
-	 * When a tableId is already registered, it is replaced with the new ActorRef.
+	 * It is expected that a table position is already registered and it is replaced with the new ActorRef.
 	 * When a excessive Table is about to be registered, IncorrectRegisterException is thrown.
 	 * @param msg	message for registering new Table
 	 * @return 		wrapped Behavior
 	 */
 	private Behavior<Protocol> onRegisterTable(RegisterTableMsg msg)
 	{
-		int tableId = msg._tableId;
-
-		if(_tables.containsKey(tableId))
+		Integer index;
+		if (_tableIndex.containsKey(msg._tablePos))
 		{
-			_tables.remove(tableId);
+			index = _tableIndex.get(msg._tablePos).second;
+			_tableIndex.remove(msg._tablePos);
 		}
-		else if(_tables.size() >= this.getExpectedTablesCount())
+		else
 		{
-			msg._replyTo.tell(new RegisteredMsg(tableId, false));
+			msg._replyTo.tell(new RegisteredMsg(msg._tablePos, false));
 			throw new IncorrectRegisterException("Excessive Table cannot be registered");
 		}
 
-		_tables.put(tableId, msg._tableToRegister);
-		msg._replyTo.tell(new RegisteredMsg(tableId, true));
+		_tableIndex.put(msg._tablePos, new Pair<ActorRef<Table.Protocol>, Integer>(msg._tableToRegister, index));
+		msg._replyTo.tell(new RegisteredMsg(msg._tablePos, true));
 
 		return this;
 	}
@@ -141,10 +193,5 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	{
 		// getContext().getLog().info("Player {} stopped", _tableId); 	// left for debugging only
 		return this;
-	}
-
-	private int getExpectedTablesCount()
-	{
-		return 9;	// TODO ! Replace with dynamic value
 	}
 }

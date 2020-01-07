@@ -22,9 +22,11 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	/** Message for creating the Table. */
 	public static class CreateMsg implements Protocol
 	{
+		final int _tableId;
 		final Vector2d _tablePos;
-		public CreateMsg(Vector2d tablePos)
+		public CreateMsg(int tableId, Vector2d tablePos)
 		{
+			this._tableId = tableId;
 			this._tablePos = tablePos;
 		}
 	}
@@ -64,6 +66,8 @@ public class Table extends AbstractBehavior<Table.Protocol>
 		}
 	}
 
+	/** Global ID of the Table */
+	private final int _tableId;
 	/** Global position of the Table */
 	private final Vector2d _tablePos;
 	/** Data structure for storing Players - agents registered to this Table. */
@@ -80,9 +84,10 @@ public class Table extends AbstractBehavior<Table.Protocol>
 		return Behaviors.setup(context -> new Table(context, createMsg));
 	}
 
-	public Table(ActorContext<Protocol> context, CreateMsg createMsg)
+	private Table(ActorContext<Protocol> context, CreateMsg createMsg)
 	{
 		super(context);
+		_tableId = createMsg._tableId;
 		_tablePos = createMsg._tablePos;
 		_players = new HashMap<>();
 		// context.getLog().info("Table {} created", _TableId);			// left for debugging only

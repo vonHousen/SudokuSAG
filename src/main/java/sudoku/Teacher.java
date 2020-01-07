@@ -4,7 +4,6 @@ import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.PostStop;
 import akka.actor.typed.PreRestart;
-import akka.actor.typed.SupervisorStrategy;
 import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
@@ -59,7 +58,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		return Behaviors.setup(context -> new Teacher(context, createMsg));
 	}
 
-	public Teacher(ActorContext<Protocol> context, CreateMsg createMsg)
+	private Teacher(ActorContext<Protocol> context, CreateMsg createMsg)
 	{
 		super(context);
 		this._sudoku = createMsg._sudoku;
@@ -122,33 +121,88 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	}
 
 	/** Action of spawning all child Players agents. */
-	private void spawnPlayers()
+	private void spawnPlayers()		// TODO decide if pass a part of sudoku during creation
 	{
-		for(int playerId = 0; playerId < 3 * _sudoku.getSize(); playerId++)
+		int playerId = 0, x, y;
+
+		// spawn Rows
+		for(x = 0; x < _sudoku.getRank(); playerId++, x++)
 		{
-			// TODO in fact spawn Row / Column / Block
 			ActorRef<Player.Protocol> newPlayer = getContext().spawn(
 					//Behaviors.supervise(		TODO decide whether delete or uncomment
-						Player.create(new Player.CreateMsg(playerId))
+						Player.create(new Player.CreateMsg(
+							playerId,
+							new Vector2d(x, 0),
+							Player.Type.ROW,
+							new int[_sudoku.getRank()],
+							new boolean[_sudoku.getRank()]
+							)
+						)
 					//).onFailure(SupervisorStrategy.restart())
 					, "player-" + playerId
 			);
 			_players.put(playerId, newPlayer);
 		}
+
+		// spawn Columns
+		for(y = 0; y < _sudoku.getRank(); playerId++, y++)
+		{
+			ActorRef<Player.Protocol> newPlayer = getContext().spawn(
+					//Behaviors.supervise(		TODO decide whether delete or uncomment
+						Player.create(new Player.CreateMsg(
+							playerId,
+							new Vector2d(0, y),
+							Player.Type.COLUMN,
+							new int[_sudoku.getRank()],
+							new boolean[_sudoku.getRank()]
+							)
+						)
+					//).onFailure(SupervisorStrategy.restart())
+					, "player-" + playerId
+			);
+			_players.put(playerId, newPlayer);
+		}
+
+		// spawn Columns
+		final int blockSize = _sudoku.getBlockSize();
+		for(y = 0; y < _sudoku.getRank(); y += blockSize)
+		{
+			for(x = 0; x < _sudoku.getRank(); x += blockSize, playerId++)
+			{
+				ActorRef<Player.Protocol> newPlayer = getContext().spawn(
+						//Behaviors.supervise(		TODO decide whether delete or uncomment
+							Player.create(new Player.CreateMsg(
+								playerId,
+								new Vector2d(x, y),
+								Player.Type.BLOCK,
+								new int[_sudoku.getRank()],
+								new boolean[_sudoku.getRank()]
+								)
+							)
+						//).onFailure(SupervisorStrategy.restart())
+						, "player-" + playerId
+				);
+				_players.put(playerId, newPlayer);
+			}
+		}
 	}
 
 	/** Action of spawning all child Tables agents. */
-	private void  spawnTables()
+	private void  spawnTables()		// TODO decide if pass a part of sudoku during creation
 	{
-		for(int tableId = 0; tableId < 3*3 * _sudoku.getSize(); tableId++)
+		int tableId = 0, x, y;
+		for(y = 0; y < _sudoku.getRank(); y++)
 		{
-			ActorRef<Table.Protocol> newTable = getContext().spawn(
-					//Behaviors.supervise(		TODO decide whether delete or uncomment
-						Table.create(new Table.CreateMsg(tableId))
-					//).onFailure(SupervisorStrategy.restart())
-					, "table-" + tableId
-			);
-			_tables.put(tableId, newTable);
+			for(x = 0; x < _sudoku.getRank(); x++, tableId++)
+			{
+				ActorRef<Table.Protocol> newTable = getContext().spawn(
+						//Behaviors.supervise(		TODO decide whether delete or uncomment
+						Table.create(new Table.CreateMsg(tableId, new Vector2d(x, y)))
+						//).onFailure(SupervisorStrategy.restart())
+						, "table-" + tableId
+				);
+				_tables.put(tableId, newTable);
+			}
 		}
 	}
 

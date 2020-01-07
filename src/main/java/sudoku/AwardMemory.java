@@ -1,6 +1,6 @@
 package sudoku;
 
-import sun.util.resources.cldr.si.CurrencyNames_si;
+// import sun.util.resources.cldr.si.CurrencyNames_si;
 
 public class AwardMemory
 {

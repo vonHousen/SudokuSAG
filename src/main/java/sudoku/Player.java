@@ -74,11 +74,11 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		}
 	}
 
-	enum Type
+	public enum Type
 	{
 		COLUMN,
 		ROW,
-		SQUARE
+		BLOCK
 	}
 
 	/** Global ID of this Player */
@@ -111,7 +111,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 					}
 				}
 				break;
-			case SQUARE:
+			case BLOCK:
 				for (int i = 0; i < digitMask.length; ++i)
 				{
 					if (!digitMask[i])
@@ -133,7 +133,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		return Behaviors.setup(context -> new Player(context, createMsg));
 	}
 
-	public Player(ActorContext<Protocol> context, CreateMsg createMsg)
+	private Player(ActorContext<Protocol> context, CreateMsg createMsg)
 	{
 		super(context);
 		_playerId = createMsg._playerId;

@@ -1,5 +1,7 @@
 package sudoku;
 
+import static java.lang.Math.sqrt;
+
 /**
  * Class representing Sudoku riddle.
  */
@@ -107,5 +109,10 @@ public class Sudoku
 	public int getPlayerCount()
 	{
 		return 3 * _size;
+	}
+
+	public int getBlockSize()
+	{
+		return (int) sqrt(this._size);
 	}
 }

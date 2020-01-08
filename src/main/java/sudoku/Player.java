@@ -87,7 +87,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	/** Message received from the Table, requesting for additional info about other stakeholder's digit. */
 	public static class AdditionalInfoRequestMsg extends NegotiationsMsg
 	{
-		private final int _otherDigit;
+		public final int _otherDigit;
 
 		public AdditionalInfoRequestMsg(int otherDigit, ActorRef<Table.Protocol> replyTo, int tableId)
 		{

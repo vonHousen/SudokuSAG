@@ -77,11 +77,12 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	}
 
 	/** Message received from the Player, consisting of it's subjectively the best digit to be inserted */
-	public static class BestOfferMsg extends NegotiationsMsg
+	public static class OfferMsg extends NegotiationsMsg
 	{
 		private final int _offeredDigit;
+		// TODO add weight for proposed digit
 
-		public BestOfferMsg(int offeredDigit, ActorRef<Player.Protocol> replyTo, int playerId)
+		public OfferMsg(int offeredDigit, ActorRef<Player.Protocol> replyTo, int playerId)
 		{
 			super(replyTo, playerId);
 			this._offeredDigit = offeredDigit;

@@ -121,7 +121,12 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	/** Structure containing awards and current digit vector */
 	private final Memory _memory;
 
-	/** Add all keys to _tableIndex with correct index and actor reference set to null. */
+	/**
+	 * Add all keys to _tableIndex with correct index and actor reference set to null.
+	 * @param origin	position of the player as an origin for creating all fields
+	 * @param t			ROW/COLUMN/BLOCK of the player
+	 * @param digitMask	data structure containing masks (if a field is hardcoded or not)
+	 */
 	private void fillTableIndex(Position origin, PlayerType t, boolean[] digitMask)
 	{
 		switch (t)

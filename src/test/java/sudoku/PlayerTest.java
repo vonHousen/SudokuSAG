@@ -25,7 +25,7 @@ public class PlayerTest
 						new Player.CreateMsg(
 								0,
 								new Position(0,0),
-								Player.Type.ROW,
+								Player.PlayerType.ROW,
 								new int[9],
 								new boolean[9]
 								)

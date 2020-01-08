@@ -31,11 +31,11 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	{
 		final int _playerId;
 		final Position _playerPosition;
-		final Type _playerType;
+		final PlayerType _playerType;
 		final int[] _digitVector;
 		final boolean[] _digitMask;
 
-		public CreateMsg(int playerId, Position playerPosition, Type playerType, int[] digitVector, boolean[] digitMask)
+		public CreateMsg(int playerId, Position playerPosition, PlayerType playerType, int[] digitVector, boolean[] digitMask)
 		{
 			this._playerId = playerId;
 			this._playerPosition = playerPosition;
@@ -107,7 +107,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	}
 
 	/** Defines if Player is a Row, a Column or a square Block */
-	public enum Type
+	public enum PlayerType
 	{
 		COLUMN,
 		ROW,
@@ -122,7 +122,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	private final Memory _memory;
 
 	/** Add all keys to _tableIndex with correct index and actor reference set to null. */
-	private void fillTableIndex(Position origin, Type t, boolean[] digitMask)
+	private void fillTableIndex(Position origin, PlayerType t, boolean[] digitMask)
 	{
 		switch (t)
 		{

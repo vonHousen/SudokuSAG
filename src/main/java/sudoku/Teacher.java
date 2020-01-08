@@ -69,6 +69,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 
 		spawnPlayers();
 		spawnTables();
+		registerAgentsOnSetup();
 	}
 
 	/**
@@ -141,7 +142,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 						Player.create(new Player.CreateMsg(
 							playerId,
 							new Position(x, 0),
-							Player.Type.COLUMN,
+							Player.PlayerType.COLUMN,
 							digitVector,
 							maskVector
 							)
@@ -167,7 +168,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 						Player.create(new Player.CreateMsg(
 							playerId,
 							new Position(0, y),
-							Player.Type.ROW,
+							Player.PlayerType.ROW,
 							digitVector,
 							maskVector
 							)
@@ -199,7 +200,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 							Player.create(new Player.CreateMsg(
 								playerId,
 								new Position(x, y),
-								Player.Type.BLOCK,
+								Player.PlayerType.BLOCK,
 								digitVector,
 								maskVector
 								)
@@ -232,8 +233,9 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		}
 	}
 
-	private void registerPlayerToTable(ActorRef<Void> player, ActorRef<Void> table)
+	/** Action of registering Players to Tables and Tables to Players. */
+	private void registerAgentsOnSetup()	// TODO
 	{
-		//player.tell();	// TODO register them !
+
 	}
 }

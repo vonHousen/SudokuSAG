@@ -1,8 +1,6 @@
 package sudoku;
 
-// import sun.util.resources.cldr.si.CurrencyNames_si;
-
-public class AwardMemory
+public class Memory
 {
     /** Array of award values. The first index is for field and the second for digit. */
     private final int[][] _awards;
@@ -11,7 +9,7 @@ public class AwardMemory
     /** Array of flags indicating hard-coded fields. If true, field cannot be modified. */
     private final boolean[] _mask;
 
-    public AwardMemory(int[] digitVector, boolean[] mask)
+    public Memory(int[] digitVector, boolean[] mask)
     {
         this._awards = new int[digitVector.length][digitVector.length]; // By default initialized to 0
         this._digitVector = digitVector;

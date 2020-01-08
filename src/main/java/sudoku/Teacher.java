@@ -134,8 +134,8 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 							playerId,
 							new Vector2d(x, 0),
 							Player.Type.ROW,
-							new int[_sudoku.getRank()],
-							new boolean[_sudoku.getRank()]
+							new int[_sudoku.getRank()],	// TODO ! fix getsize
+							new boolean[_sudoku.getRank()]	// TODO
 							)
 						)
 					//).onFailure(SupervisorStrategy.restart())
@@ -163,7 +163,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 			_players.put(playerId, newPlayer);
 		}
 
-		// spawn Columns
+		// spawn Blocks
 		final int blockSize = _sudoku.getBlockSize();
 		for(y = 0; y < _sudoku.getRank(); y += blockSize)
 		{
@@ -208,6 +208,6 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 
 	private void registerPlayerToTable(ActorRef<Void> player, ActorRef<Void> table)
 	{
-		//player.tell();
+		//player.tell();	// TODO register them !
 	}
 }

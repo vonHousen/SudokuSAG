@@ -86,7 +86,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	/** Data structure for storing Tables (agents registered to this Player) and internal sudoku digit indices */
 	private final Map<Vector2d, Pair<ActorRef<Table.Protocol>, Integer>> _tableIndex;
 	/** Structure containing awards and current digit vector */
-	private final AwardMemory _memory;
+	private final Memory _memory;
 
 	/** Add all keys to _tableIndex with correct index and actor reference set to null. */
 	private void fillTableIndex(Vector2d origin, Type t, boolean[] digitMask)
@@ -139,7 +139,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		_playerId = createMsg._playerId;
 		_tableIndex = new HashMap<>();
 		fillTableIndex(createMsg._playerPosition, createMsg._playerType, createMsg._digitMask);
-		_memory = new AwardMemory(createMsg._digitVector, createMsg._digitMask);
+		_memory = new Memory(createMsg._digitVector, createMsg._digitMask);
 		// context.getLog().info("Player {} created", _tableId);		// left for debugging only
 	}
 

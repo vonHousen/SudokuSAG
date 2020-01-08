@@ -20,10 +20,10 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	/** Protocol interface for input messages. */
 	public interface Protocol {}
 
-	/** Protocol interface for messages for initialisation strategy */
+	/** Protocol interface for messages for initialisation strategy. */
 	public interface InitialisationProtocol extends Protocol {}
 
-	/** Protocol interface for messages during negotiations */
+	/** Protocol interface for messages during negotiations. */
 	public interface NegotiationsProtocol extends Protocol {}
 
 	/** Message for creating the Player. */
@@ -71,7 +71,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		}
 	}
 
-	/** Abstract class for messages sent from Table Agent during negotiations */
+	/** Abstract class for messages received from Table Agent during negotiations. */
 	public static abstract class NegotiationsMsg implements NegotiationsProtocol
 	{
 		private final ActorRef<Table.Protocol> _replyTo;
@@ -84,19 +84,18 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		}
 	}
 
-	/** Message received after sending an offer to Table */
+	/** Message received from the Table, requesting for additional info about other stakeholder's digit. */
 	public static class AdditionalInfoRequestMsg extends NegotiationsMsg
 	{
-		private final int _otherDigit1;
-		private final int _otherDigit2;
+		private final int _otherDigit;
 
-		public AdditionalInfoRequestMsg(int otherDigit1, int otherDigit2, ActorRef<Table.Protocol> replyTo, int tableId)
+		public AdditionalInfoRequestMsg(int otherDigit, ActorRef<Table.Protocol> replyTo, int tableId)
 		{
 			super(replyTo, tableId);
-			this._otherDigit1 = otherDigit1;
-			this._otherDigit2 = otherDigit2;
+			this._otherDigit = otherDigit;
 		}
 	}
+
 
 	/** Custom exception thrown when excessive Table is about to be registered to this Player */
 	public static class IncorrectRegisterException extends RuntimeException

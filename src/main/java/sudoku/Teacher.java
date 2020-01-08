@@ -122,7 +122,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	}
 
 	/** Action of spawning all child Players agents. */
-	private void spawnPlayers()		// TODO decide if pass a part of sudoku during creation
+	private void spawnPlayers()
 	{
 		int playerId = 0, x, y;
 		final int sudokuSize = _sudoku.getSize();
@@ -138,7 +138,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 				maskVector[i] = _sudoku.getMask(x, i);
 			}
 			ActorRef<Player.Protocol> newPlayer = getContext().spawn(
-					//Behaviors.supervise(		TODO decide whether delete or uncomment
+					//Behaviors.supervise(		TODO decide if supervise children
 						Player.create(new Player.CreateMsg(
 							playerId,
 							new Position(x, 0),
@@ -164,7 +164,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 				maskVector[i] = _sudoku.getMask(i, y);
 			}
 			ActorRef<Player.Protocol> newPlayer = getContext().spawn(
-					//Behaviors.supervise(		TODO decide whether delete or uncomment
+					//Behaviors.supervise(		TODO decide if supervise children
 						Player.create(new Player.CreateMsg(
 							playerId,
 							new Position(0, y),
@@ -196,7 +196,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 					}
 				}
 				ActorRef<Player.Protocol> newPlayer = getContext().spawn(
-						//Behaviors.supervise(		TODO decide whether delete or uncomment
+						//Behaviors.supervise(		TODO decide if supervise children
 							Player.create(new Player.CreateMsg(
 								playerId,
 								new Position(x, y),
@@ -214,7 +214,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	}
 
 	/** Action of spawning all child Tables agents. */
-	private void  spawnTables()		// TODO decide if pass a part of sudoku during creation
+	private void  spawnTables()
 	{
 		int tableId = 0, x, y;
 		final int sudokuSize = _sudoku.getSize();
@@ -223,7 +223,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 			for(x = 0; x < sudokuSize; x++, tableId++)
 			{
 				ActorRef<Table.Protocol> newTable = getContext().spawn(
-						//Behaviors.supervise(		TODO decide whether delete or uncomment
+						//Behaviors.supervise(		TODO decide if supervise children
 						Table.create(new Table.CreateMsg(tableId, new Position(x, y)))
 						//).onFailure(SupervisorStrategy.restart())
 						, "table-" + tableId

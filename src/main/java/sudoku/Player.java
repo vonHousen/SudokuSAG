@@ -20,8 +20,14 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	/** Protocol interface for input messages. */
 	public interface Protocol {}
 
+	/** Protocol interface for messages for initialisation strategy */
+	public interface InitialisationProtocol extends Protocol {}
+
+	/** Protocol interface for messages during negotiations */
+	public interface NegotiationsProtocol extends Protocol {}
+
 	/** Message for creating the Player. */
-	public static class CreateMsg implements Protocol
+	public static class CreateMsg implements InitialisationProtocol
 	{
 		final int _playerId;
 		final Vector2d _playerPosition;
@@ -40,7 +46,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	}
 
 	/** Message for registering a Table. */
-	public static class RegisterTableMsg implements Protocol
+	public static class RegisterTableMsg implements InitialisationProtocol
 	{
 		final ActorRef<Table.Protocol> _tableToRegister;
 		final Vector2d _tablePos;
@@ -54,7 +60,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	}
 
 	/** Message sent out after registering a Table. */
-	public static class RegisteredMsg implements Protocol
+	public static class RegisteredMsg implements InitialisationProtocol
 	{
 		final Vector2d _tablePos;
 		final boolean _isItDone;
@@ -62,6 +68,33 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		{
 			this._tablePos = tablePos;
 			this._isItDone = isItDone;
+		}
+	}
+
+	/** Abstract class for messages sent from Table Agent during negotiations */
+	public static abstract class NegotiationsMsg implements NegotiationsProtocol
+	{
+		private final ActorRef<Table.Protocol> _replyTo;
+		private final int _tableId;
+
+		protected NegotiationsMsg(ActorRef<Table.Protocol> replyTo, int tableId)
+		{
+			this._replyTo = replyTo;
+			this._tableId = tableId;
+		}
+	}
+
+	/** Message received after sending an offer to Table */
+	public static class AdditionalInfoRequestMsg extends NegotiationsMsg
+	{
+		private final int _otherDigit1;
+		private final int _otherDigit2;
+
+		public AdditionalInfoRequestMsg(int otherDigit1, int otherDigit2, ActorRef<Table.Protocol> replyTo, int tableId)
+		{
+			super(replyTo, tableId);
+			this._otherDigit1 = otherDigit1;
+			this._otherDigit2 = otherDigit2;
 		}
 	}
 
@@ -74,6 +107,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		}
 	}
 
+	/** Defines if Player is a Row, a Column or a square Block */
 	public enum Type
 	{
 		COLUMN,

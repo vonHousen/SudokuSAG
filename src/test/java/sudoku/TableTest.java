@@ -26,12 +26,7 @@ public class TableTest
 		Vector<ActorRef<Player.Protocol>> players = new Vector<>();
 		for(int id = 0; id < 4; id++)
 			players.add(testKit.spawn(Player.create(new Player.CreateMsg(
-					id,
-					new Vector2d(id, 0),
-					Player.Type.ROW,
-					new int[9],
-					new boolean[9]
-					)
+					id, new Vector2d(id, 0), Player.Type.ROW, new int[9], new boolean[9] )
 			),"player-" + id));
 
 		for(int id = 0; id < 3; id++)

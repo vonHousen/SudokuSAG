@@ -19,8 +19,14 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	/** Protocol interface for input messages. */
 	public interface Protocol {}
 
+	/** Protocol interface for messages for initialisation strategy */
+	public interface InitialisationProtocol extends Protocol {}
+
+	/** Protocol interface for messages during negotiations */
+	public interface NegotiationsProtocol extends Protocol {}
+
 	/** Message for creating the Table. */
-	public static class CreateMsg implements Protocol
+	public static class CreateMsg implements InitialisationProtocol
 	{
 		final int _tableId;
 		final Vector2d _tablePos;
@@ -32,7 +38,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	}
 
 	/** Message for registering a Player. */
-	public static class RegisterPlayerMsg implements Protocol
+	public static class RegisterPlayerMsg implements InitialisationProtocol
 	{
 		final ActorRef<Player.Protocol> _playerToRegister;
 		final int _playerId;
@@ -46,7 +52,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	}
 
 	/** Message sent out after registering a Player. */
-	public static class RegisteredMsg implements Protocol
+	public static class RegisteredMsg implements InitialisationProtocol
 	{
 		final int _playerId;
 		final boolean _isItDone;
@@ -56,6 +62,33 @@ public class Table extends AbstractBehavior<Table.Protocol>
 			this._isItDone = isItDone;
 		}
 	}
+
+	/** Abstract class for messages received from the Player during negotiations */
+	public static abstract class NegotiationsMsg implements NegotiationsProtocol
+	{
+		private final ActorRef<Player.Protocol> _replyTo;
+		private final int _playerId;
+
+		protected NegotiationsMsg(ActorRef<Player.Protocol> replyTo, int playerId)
+		{
+			this._replyTo = replyTo;
+			this._playerId = playerId;
+		}
+	}
+
+	/** Message received from the Player, consisting of it's subjectively the best digit to be inserted */
+	public static class OfferMsg extends NegotiationsMsg
+	{
+		private final int _offeredDigit;
+		// TODO add weight for proposed digit
+
+		public OfferMsg(int offeredDigit, ActorRef<Player.Protocol> replyTo, int playerId)
+		{
+			super(replyTo, playerId);
+			this._offeredDigit = offeredDigit;
+		}
+	}
+
 
 	/** Custom exception thrown when 4th Player is about to be registered to this table. */
 	public static class IncorrectRegisterException extends RuntimeException

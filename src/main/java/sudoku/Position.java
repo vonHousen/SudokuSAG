@@ -1,11 +1,11 @@
 package sudoku;
 
-public class Vector2d
+public class Position
 {
     public final int x;
     public final int y;
 
-    public Vector2d(int x, int y)
+    public Position(int x, int y)
     {
         this.x = x;
         this.y = y;
@@ -15,7 +15,7 @@ public class Vector2d
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        return x == ((Vector2d) o).x && y == ((Vector2d) o).y ;
+        return x == ((Position) o).x && y == ((Position) o).y ;
     }
 
     @Override

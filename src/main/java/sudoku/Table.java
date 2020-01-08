@@ -29,8 +29,8 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	public static class CreateMsg implements InitialisationProtocol
 	{
 		final int _tableId;
-		final Vector2d _tablePos;
-		public CreateMsg(int tableId, Vector2d tablePos)
+		final Position _tablePos;
+		public CreateMsg(int tableId, Position tablePos)
 		{
 			this._tableId = tableId;
 			this._tablePos = tablePos;
@@ -102,7 +102,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	/** Global ID of the Table */
 	private final int _tableId;
 	/** Global position of the Table */
-	private final Vector2d _tablePos;
+	private final Position _tablePos;
 	/** Data structure for storing Players - agents registered to this Table. */
 	private Map<Integer, ActorRef<Player.Protocol>> _players;
 

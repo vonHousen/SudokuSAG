@@ -124,18 +124,26 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	private void spawnPlayers()		// TODO decide if pass a part of sudoku during creation
 	{
 		int playerId = 0, x, y;
+		final int sudokuSize = _sudoku.getSize();
 
-		// spawn Rows
-		for(x = 0; x < _sudoku.getRank(); playerId++, x++)
+		// spawn Columns
+		for(x = 0; x < sudokuSize; ++playerId, ++x)
 		{
+			int[] digitVector = new int[sudokuSize];
+			boolean[] maskVector = new boolean[sudokuSize];
+			for(int i = 0; i < sudokuSize; ++i)
+			{
+				digitVector[i] = _sudoku.getDigit(x, i);
+				maskVector[i] = _sudoku.getMask(x, i);
+			}
 			ActorRef<Player.Protocol> newPlayer = getContext().spawn(
 					//Behaviors.supervise(		TODO decide whether delete or uncomment
 						Player.create(new Player.CreateMsg(
 							playerId,
-							new Vector2d(x, 0),
-							Player.Type.ROW,
-							new int[_sudoku.getRank()],	// TODO ! fix getsize
-							new boolean[_sudoku.getRank()]	// TODO
+							new Position(x, 0),
+							Player.Type.COLUMN,
+							digitVector,
+							maskVector
 							)
 						)
 					//).onFailure(SupervisorStrategy.restart())
@@ -144,17 +152,24 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 			_players.put(playerId, newPlayer);
 		}
 
-		// spawn Columns
-		for(y = 0; y < _sudoku.getRank(); playerId++, y++)
+		// spawn Rows
+		for(y = 0; y < sudokuSize; ++playerId, ++y)
 		{
+			int[] digitVector = new int[sudokuSize];
+			boolean[] maskVector = new boolean[sudokuSize];
+			for(int i = 0; i < sudokuSize; ++i)
+			{
+				digitVector[i] = _sudoku.getDigit(i, y);
+				maskVector[i] = _sudoku.getMask(i, y);
+			}
 			ActorRef<Player.Protocol> newPlayer = getContext().spawn(
 					//Behaviors.supervise(		TODO decide whether delete or uncomment
 						Player.create(new Player.CreateMsg(
 							playerId,
-							new Vector2d(0, y),
-							Player.Type.COLUMN,
-							new int[_sudoku.getRank()],
-							new boolean[_sudoku.getRank()]
+							new Position(0, y),
+							Player.Type.ROW,
+							digitVector,
+							maskVector
 							)
 						)
 					//).onFailure(SupervisorStrategy.restart())
@@ -164,19 +179,29 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		}
 
 		// spawn Blocks
-		final int blockSize = _sudoku.getBlockSize();
-		for(y = 0; y < _sudoku.getRank(); y += blockSize)
+		final int blockSize = _sudoku.getRank();
+		for(y = 0; y < sudokuSize; y += blockSize)
 		{
-			for(x = 0; x < _sudoku.getRank(); x += blockSize, playerId++)
+			for(x = 0; x < sudokuSize; x += blockSize, ++playerId)
 			{
+				int[] digitVector = new int[sudokuSize];
+				boolean[] maskVector = new boolean[sudokuSize];
+				for(int i = 0; i < blockSize; ++i)
+				{
+					for(int j = 0; j < blockSize; ++j)
+					{
+						digitVector[blockSize*j+i] = _sudoku.getDigit(x+i, y+j);
+						maskVector[blockSize*j+i] = _sudoku.getMask(x+i, y+j);
+					}
+				}
 				ActorRef<Player.Protocol> newPlayer = getContext().spawn(
 						//Behaviors.supervise(		TODO decide whether delete or uncomment
 							Player.create(new Player.CreateMsg(
 								playerId,
-								new Vector2d(x, y),
+								new Position(x, y),
 								Player.Type.BLOCK,
-								new int[_sudoku.getRank()],
-								new boolean[_sudoku.getRank()]
+								digitVector,
+								maskVector
 								)
 							)
 						//).onFailure(SupervisorStrategy.restart())
@@ -191,13 +216,14 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	private void  spawnTables()		// TODO decide if pass a part of sudoku during creation
 	{
 		int tableId = 0, x, y;
-		for(y = 0; y < _sudoku.getRank(); y++)
+		final int sudokuSize = _sudoku.getSize();
+		for(y = 0; y < sudokuSize; y++)
 		{
-			for(x = 0; x < _sudoku.getRank(); x++, tableId++)
+			for(x = 0; x < sudokuSize; x++, tableId++)
 			{
 				ActorRef<Table.Protocol> newTable = getContext().spawn(
 						//Behaviors.supervise(		TODO decide whether delete or uncomment
-						Table.create(new Table.CreateMsg(tableId, new Vector2d(x, y)))
+						Table.create(new Table.CreateMsg(tableId, new Position(x, y)))
 						//).onFailure(SupervisorStrategy.restart())
 						, "table-" + tableId
 				);

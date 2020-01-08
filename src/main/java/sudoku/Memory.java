@@ -57,6 +57,11 @@ public class Memory
         return _digitVector[n];
     }
 
+    public boolean getMask(int n)
+    {
+        return _mask[n];
+    }
+
     public int getAward(int n, int digit)
     {
         return _awards[n][digit];

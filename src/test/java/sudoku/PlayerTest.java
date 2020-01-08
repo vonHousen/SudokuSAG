@@ -24,8 +24,8 @@ public class PlayerTest
 				Player.create(
 						new Player.CreateMsg(
 								0,
-								new Vector2d(0,0),
-								Player.Type.ROW,
+								new Position(0,0),
+								Player.PlayerType.ROW,
 								new int[9],
 								new boolean[9]
 								)
@@ -36,12 +36,12 @@ public class PlayerTest
 		Vector<ActorRef<Table.Protocol>> tables = new Vector<>();
 		for(int id = 0; id < expectedCnt + 1; id++)
 			tables.add(testKit.spawn(Table.create(
-					new Table.CreateMsg(id, new Vector2d(id,0))
+					new Table.CreateMsg(id, new Position(id,0))
 			),"table-" + id));
 
 		for(int id = 0; id < expectedCnt; id++)
 		{
-			Vector2d position = new Vector2d(id, 0);
+			Position position = new Position(id, 0);
 			thePlayer.tell(new Player.RegisterTableMsg(
 					tables.get(id), position, testProbe.getRef()));
 			Player.RegisteredMsg response = testProbe.receiveMessage();
@@ -49,7 +49,7 @@ public class PlayerTest
 			assertEquals(true, response._isItDone);
 		}
 
-		Vector2d excessivePosition = new Vector2d(excesiveId, 0);
+		Position excessivePosition = new Position(excesiveId, 0);
 		thePlayer.tell(new Player.RegisterTableMsg(
 				tables.get(excesiveId), excessivePosition, testProbe.getRef()));
 		Player.RegisteredMsg response = testProbe.receiveMessage();

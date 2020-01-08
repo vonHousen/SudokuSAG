@@ -30,12 +30,12 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	public static class CreateMsg implements InitialisationProtocol
 	{
 		final int _playerId;
-		final Vector2d _playerPosition;
-		final Type _playerType;
+		final Position _playerPosition;
+		final PlayerType _playerType;
 		final int[] _digitVector;
 		final boolean[] _digitMask;
 
-		public CreateMsg(int playerId, Vector2d playerPosition, Type playerType, int[] digitVector, boolean[] digitMask)
+		public CreateMsg(int playerId, Position playerPosition, PlayerType playerType, int[] digitVector, boolean[] digitMask)
 		{
 			this._playerId = playerId;
 			this._playerPosition = playerPosition;
@@ -49,9 +49,9 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	public static class RegisterTableMsg implements InitialisationProtocol
 	{
 		final ActorRef<Table.Protocol> _tableToRegister;
-		final Vector2d _tablePos;
+		final Position _tablePos;
 		final ActorRef<RegisteredMsg> _replyTo;
-		public RegisterTableMsg(ActorRef<Table.Protocol> tableToRegister, Vector2d tablePos, ActorRef<RegisteredMsg> replyTo)
+		public RegisterTableMsg(ActorRef<Table.Protocol> tableToRegister, Position tablePos, ActorRef<RegisteredMsg> replyTo)
 		{
 			this._tableToRegister = tableToRegister;
 			this._tablePos = tablePos;
@@ -62,9 +62,9 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	/** Message sent out after registering a Table. */
 	public static class RegisteredMsg implements InitialisationProtocol
 	{
-		final Vector2d _tablePos;
+		final Position _tablePos;
 		final boolean _isItDone;
-		public RegisteredMsg(Vector2d tablePos, boolean isItDone)
+		public RegisteredMsg(Position tablePos, boolean isItDone)
 		{
 			this._tablePos = tablePos;
 			this._isItDone = isItDone;
@@ -107,7 +107,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	}
 
 	/** Defines if Player is a Row, a Column or a square Block */
-	public enum Type
+	public enum PlayerType
 	{
 		COLUMN,
 		ROW,
@@ -117,12 +117,17 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	/** Global ID of this Player */
 	private final int _playerId;
 	/** Data structure for storing Tables (agents registered to this Player) and internal sudoku digit indices */
-	private final Map<Vector2d, Pair<ActorRef<Table.Protocol>, Integer>> _tableIndex;
+	private final Map<Position, Pair<ActorRef<Table.Protocol>, Integer>> _tableIndex;
 	/** Structure containing awards and current digit vector */
 	private final Memory _memory;
 
-	/** Add all keys to _tableIndex with correct index and actor reference set to null. */
-	private void fillTableIndex(Vector2d origin, Type t, boolean[] digitMask)
+	/**
+	 * Add all keys to _tableIndex with correct index and actor reference set to null.
+	 * @param origin	position of the player as an origin for creating all fields
+	 * @param t			ROW/COLUMN/BLOCK of the player
+	 * @param digitMask	data structure containing masks (if a field is hardcoded or not)
+	 */
+	private void fillTableIndex(Position origin, PlayerType t, boolean[] digitMask)
 	{
 		switch (t)
 		{
@@ -131,7 +136,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 				{
 					if (!digitMask[i])
 					{
-						_tableIndex.put(new Vector2d(origin.x, i), new Pair<ActorRef<Table.Protocol>, Integer>(null, i));
+						_tableIndex.put(new Position(origin.x, i), new Pair<ActorRef<Table.Protocol>, Integer>(null, i));
 					}
 				}
 				break;
@@ -140,7 +145,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 				{
 					if (!digitMask[i])
 					{
-						_tableIndex.put(new Vector2d(i, origin.y), new Pair<ActorRef<Table.Protocol>, Integer>(null, i));
+						_tableIndex.put(new Position(i, origin.y), new Pair<ActorRef<Table.Protocol>, Integer>(null, i));
 					}
 				}
 				break;
@@ -149,7 +154,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 				{
 					if (!digitMask[i])
 					{
-						_tableIndex.put(new Vector2d(origin.x + (i % digitMask.length), origin.y + (i / digitMask.length)), new Pair<ActorRef<Table.Protocol>, Integer>(null, i));
+						_tableIndex.put(new Position(origin.x + (i % digitMask.length), origin.y + (i / digitMask.length)), new Pair<ActorRef<Table.Protocol>, Integer>(null, i));
 					}
 				}
 		}

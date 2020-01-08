@@ -7,7 +7,7 @@ import static java.lang.Math.sqrt;
  */
 public class Sudoku
 {
-	/** Maximal digit value in sudoku */
+	/** Size of a single (small) sudoku square (aka. block) */
 	private final int _rank;
 	/** Board size */
 	private final int _size;
@@ -65,7 +65,7 @@ public class Sudoku
 		{
 			for (int j = 0; j < _size; ++j)
 			{
-				if (board[i][j] >= 0 && board[i][j] <= _rank)
+				if (board[i][j] >= 0 && board[i][j] <= _size)
 				{
 					_board[i][j] = board[i][j];
 					_mask[i][j] = (board[i][j] == 0);
@@ -96,6 +96,10 @@ public class Sudoku
 		}
 	}
 
+	public int getDigit(int x, int y) { return _board[x][y]; }
+
+	public boolean getMask(int x, int y) { return _mask[x][y]; }
+
 	public int getSize()
 	{
 		return _size;
@@ -109,10 +113,5 @@ public class Sudoku
 	public int getPlayerCount()
 	{
 		return 3 * _size;
-	}
-
-	public int getBlockSize()
-	{
-		return (int) sqrt(this._size);
 	}
 }

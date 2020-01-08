@@ -21,12 +21,12 @@ public class TableTest
 		TestProbe<Table.RegisteredMsg> testProbe = testKit.createTestProbe();
 
 		ActorRef<Table.Protocol> theTable = testKit.spawn(
-				Table.create(new Table.CreateMsg(0, new Vector2d(0,0))),"theTable");
+				Table.create(new Table.CreateMsg(0, new Position(0,0))),"theTable");
 
 		Vector<ActorRef<Player.Protocol>> players = new Vector<>();
 		for(int id = 0; id < 4; id++)
 			players.add(testKit.spawn(Player.create(new Player.CreateMsg(
-					id, new Vector2d(id, 0), Player.Type.ROW, new int[9], new boolean[9] )
+					id, new Position(id, 0), Player.PlayerType.ROW, new int[9], new boolean[9] )
 			),"player-" + id));
 
 		for(int id = 0; id < 3; id++)

@@ -28,7 +28,7 @@ public class SudokuStartTest
 		testProbe.expectMessage("I will be terminated.");
 
 		// below is just printout control
-		try{Thread.sleep(250);} catch (Exception e){}
+		try{Thread.sleep(500);} catch (Exception e){}
 		System.out.println("======================================> Test finished");
 	}
 }

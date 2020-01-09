@@ -30,18 +30,12 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	public static class CreateMsg implements InitialisationProtocol
 	{
 		final int _playerId;
-		final Position _playerPosition;
-		final PlayerType _playerType;
-		final int[] _digitVector;
-		final boolean[] _digitMask;
+		final int _sudokuSize;
 
-		public CreateMsg(int playerId, Position playerPosition, PlayerType playerType, int[] digitVector, boolean[] digitMask)
+		public CreateMsg(int playerId, int sudokuSize)
 		{
 			this._playerId = playerId;
-			this._playerPosition = playerPosition;
-			this._playerType = playerType;
-			this._digitVector = digitVector;
-			this._digitMask = digitMask;
+			this._sudokuSize = sudokuSize;
 		}
 	}
 
@@ -49,24 +43,28 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	public static class RegisterTableMsg implements InitialisationProtocol
 	{
 		final ActorRef<Table.Protocol> _tableToRegister;
-		final Position _tablePos;
-		final ActorRef<RegisteredMsg> _replyTo;
-		public RegisterTableMsg(ActorRef<Table.Protocol> tableToRegister, Position tablePos, ActorRef<RegisteredMsg> replyTo)
+		final int _tableId;
+		final int _digit;
+		final boolean _mask;
+		//final ActorRef<RegisteredMsg> _replyTo;
+		public RegisterTableMsg(ActorRef<Table.Protocol> tableToRegister, int tableId, int digit, boolean mask/*, ActorRef<RegisteredMsg> replyTo*/)
 		{
 			this._tableToRegister = tableToRegister;
-			this._tablePos = tablePos;
-			this._replyTo = replyTo;
+			this._tableId = tableId;
+			this._digit = digit;
+			this._mask = mask;
+			//this._replyTo = replyTo;
 		}
 	}
 
 	/** Message sent out after registering a Table. */
 	public static class RegisteredMsg implements InitialisationProtocol
 	{
-		final Position _tablePos;
+		final int _tableId;
 		final boolean _isItDone;
-		public RegisteredMsg(Position tablePos, boolean isItDone)
+		public RegisteredMsg(int tableId, boolean isItDone)
 		{
-			this._tablePos = tablePos;
+			this._tableId = tableId;
 			this._isItDone = isItDone;
 		}
 	}
@@ -132,7 +130,6 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		}
 	}
 
-
 	/** Custom exception thrown when excessive Table is about to be registered to this Player */
 	public static class IncorrectRegisterException extends RuntimeException
 	{
@@ -142,59 +139,12 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		}
 	}
 
-	/** Defines if Player is a Row, a Column or a square Block */
-	public enum PlayerType
-	{
-		COLUMN,
-		ROW,
-		BLOCK
-	}
-
 	/** Global ID of this Player */
 	private final int _playerId;
-	/** Data structure for storing Tables (agents registered to this Player) and internal sudoku digit indices */
-	private final Map<Position, Pair<ActorRef<Table.Protocol>, Integer>> _tableIndex;
 	/** Structure containing awards and current digit vector */
 	private final Memory _memory;
-
-	/**
-	 * Add all keys to _tableIndex with correct index and actor reference set to null.
-	 * @param origin	position of the player as an origin for creating all fields
-	 * @param t			ROW/COLUMN/BLOCK of the player
-	 * @param digitMask	data structure containing masks (if a field is hardcoded or not)
-	 */
-	private void fillTableIndex(Position origin, PlayerType t, boolean[] digitMask)
-	{
-		switch (t)
-		{
-			case COLUMN:
-				for (int i = 0; i < digitMask.length; ++i)
-				{
-					if (!digitMask[i])
-					{
-						_tableIndex.put(new Position(origin.x, i), new Pair<ActorRef<Table.Protocol>, Integer>(null, i));
-					}
-				}
-				break;
-			case ROW:
-				for (int i = 0; i < digitMask.length; ++i)
-				{
-					if (!digitMask[i])
-					{
-						_tableIndex.put(new Position(i, origin.y), new Pair<ActorRef<Table.Protocol>, Integer>(null, i));
-					}
-				}
-				break;
-			case BLOCK:
-				for (int i = 0; i < digitMask.length; ++i)
-				{
-					if (!digitMask[i])
-					{
-						_tableIndex.put(new Position(origin.x + (i % digitMask.length), origin.y + (i / digitMask.length)), new Pair<ActorRef<Table.Protocol>, Integer>(null, i));
-					}
-				}
-		}
-	}
+	/** Map from global Table id to internal index and Table reference */
+	private final ActorMap<ActorRef<Table.Protocol>> _actorMap;
 
 	/**
 	 * Public method that calls private constructor.
@@ -211,9 +161,8 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	{
 		super(context);
 		_playerId = createMsg._playerId;
-		_tableIndex = new HashMap<>();
-		fillTableIndex(createMsg._playerPosition, createMsg._playerType, createMsg._digitMask);
-		_memory = new Memory(createMsg._digitVector, createMsg._digitMask);
+		_memory = new Memory(createMsg._sudokuSize);
+		_actorMap = new ActorMap<ActorRef<Table.Protocol>>(createMsg._sudokuSize);
 		// context.getLog().info("Player {} created", _tableId);		// left for debugging only
 	}
 
@@ -245,20 +194,13 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	 */
 	private Behavior<Protocol> onRegisterTable(RegisterTableMsg msg)
 	{
-		Integer index;
-		if (_tableIndex.containsKey(msg._tablePos))
+		if (_actorMap.isFull())
 		{
-			index = _tableIndex.get(msg._tablePos).second;
-			_tableIndex.remove(msg._tablePos);
-		}
-		else
-		{
-			msg._replyTo.tell(new RegisteredMsg(msg._tablePos, false));
+			//msg._replyTo.tell(new RegisteredMsg(msg._tableId, false));
 			throw new IncorrectRegisterException("Excessive Table cannot be registered");
 		}
-
-		_tableIndex.put(msg._tablePos, new Pair<ActorRef<Table.Protocol>, Integer>(msg._tableToRegister, index));
-		msg._replyTo.tell(new RegisteredMsg(msg._tablePos, true));
+		_actorMap.register(msg._tableId, msg._tableToRegister);
+		//msg._replyTo.tell(new RegisteredMsg(msg._tableId, true));
 
 		return this;
 	}

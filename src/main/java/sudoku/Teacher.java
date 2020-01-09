@@ -124,92 +124,18 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	/** Action of spawning all child Players agents. */
 	private void spawnPlayers()
 	{
-		int playerId = 0, x, y;
 		final int sudokuSize = _sudoku.getSize();
-
-		// spawn Columns
-		for(x = 0; x < sudokuSize; ++playerId, ++x)
+		final int maxPlayerCount = sudokuSize*3;
+		for (int playerId = 0; playerId < maxPlayerCount; ++playerId)
 		{
-			int[] digitVector = new int[sudokuSize];
-			boolean[] maskVector = new boolean[sudokuSize];
-			for(int i = 0; i < sudokuSize; ++i)
-			{
-				digitVector[i] = _sudoku.getDigit(x, i);
-				maskVector[i] = _sudoku.getMask(x, i);
-			}
 			ActorRef<Player.Protocol> newPlayer = getContext().spawn(
 					//Behaviors.supervise(		TODO decide if supervise children
-						Player.create(new Player.CreateMsg(
-							playerId,
-							new Position(x, 0),
-							Player.PlayerType.COLUMN,
-							digitVector,
-							maskVector
-							)
-						)
+					Player.create(new Player.CreateMsg(playerId, sudokuSize)
+					)
 					//).onFailure(SupervisorStrategy.restart())
 					, "player-" + playerId
 			);
 			_players.put(playerId, newPlayer);
-		}
-
-		// spawn Rows
-		for(y = 0; y < sudokuSize; ++playerId, ++y)
-		{
-			int[] digitVector = new int[sudokuSize];
-			boolean[] maskVector = new boolean[sudokuSize];
-			for(int i = 0; i < sudokuSize; ++i)
-			{
-				digitVector[i] = _sudoku.getDigit(i, y);
-				maskVector[i] = _sudoku.getMask(i, y);
-			}
-			ActorRef<Player.Protocol> newPlayer = getContext().spawn(
-					//Behaviors.supervise(		TODO decide if supervise children
-						Player.create(new Player.CreateMsg(
-							playerId,
-							new Position(0, y),
-							Player.PlayerType.ROW,
-							digitVector,
-							maskVector
-							)
-						)
-					//).onFailure(SupervisorStrategy.restart())
-					, "player-" + playerId
-			);
-			_players.put(playerId, newPlayer);
-		}
-
-		// spawn Blocks
-		final int blockSize = _sudoku.getRank();
-		for(y = 0; y < sudokuSize; y += blockSize)
-		{
-			for(x = 0; x < sudokuSize; x += blockSize, ++playerId)
-			{
-				int[] digitVector = new int[sudokuSize];
-				boolean[] maskVector = new boolean[sudokuSize];
-				for(int i = 0; i < blockSize; ++i)
-				{
-					for(int j = 0; j < blockSize; ++j)
-					{
-						digitVector[blockSize*j+i] = _sudoku.getDigit(x+i, y+j);
-						maskVector[blockSize*j+i] = _sudoku.getMask(x+i, y+j);
-					}
-				}
-				ActorRef<Player.Protocol> newPlayer = getContext().spawn(
-						//Behaviors.supervise(		TODO decide if supervise children
-							Player.create(new Player.CreateMsg(
-								playerId,
-								new Position(x, y),
-								Player.PlayerType.BLOCK,
-								digitVector,
-								maskVector
-								)
-							)
-						//).onFailure(SupervisorStrategy.restart())
-						, "player-" + playerId
-				);
-				_players.put(playerId, newPlayer);
-			}
 		}
 	}
 
@@ -218,9 +144,9 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	{
 		int tableId = 0, x, y;
 		final int sudokuSize = _sudoku.getSize();
-		for(y = 0; y < sudokuSize; y++)
+		for(y = 0; y < sudokuSize; ++y)
 		{
-			for(x = 0; x < sudokuSize; x++, tableId++)
+			for(x = 0; x < sudokuSize; ++x, ++tableId)
 			{
 				ActorRef<Table.Protocol> newTable = getContext().spawn(
 						//Behaviors.supervise(		TODO decide if supervise children
@@ -233,9 +159,60 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		}
 	}
 
-	/** Action of registering Players to Tables and Tables to Players. */
-	private void registerAgentsOnSetup()	// TODO
+	private void registerMutually(ActorRef<Player.Protocol> playerRef, int playerId, int sudokuSize, int x, int y)
 	{
+		final int tableId = sudokuSize*y+x;
+		ActorRef<Table.Protocol> tableRef = _tables.get(tableId);
+		playerRef.tell(new Player.RegisterTableMsg(
+				tableRef,
+				tableId,
+				_sudoku.getDigit(x, y),
+				_sudoku.getMask(x, y)));
+		tableRef.tell(new Table.RegisterPlayerMsg(
+				playerRef,
+				playerId
+				));
+	}
 
+	/** Action of registering Players to Tables and Tables to Players. */
+	private void registerAgentsOnSetup()
+	{
+		final int sudokuSize = _sudoku.getSize();
+		int playerId = 0;
+		ActorRef<Player.Protocol> playerRef;
+		// Spawn columns
+		for(int x = 0; x < sudokuSize; ++x, ++playerId)
+		{
+			playerRef = _players.get(playerId);
+			for(int y = 0; y < sudokuSize; ++y)
+			{
+				registerMutually(playerRef, playerId, sudokuSize, x, y);
+			}
+		}
+		// Spawn rows
+		for(int y = 0; y < sudokuSize; ++y, ++playerId)
+		{
+			playerRef = _players.get(playerId);
+			for(int x = 0; x < sudokuSize; ++x)
+			{
+				registerMutually(playerRef, playerId, sudokuSize, x, y);
+			}
+		}
+		// Spawn blocks (squares)
+		final int sudokuRank = _sudoku.getRank();
+		for(int y = 0; y < sudokuSize; y+=sudokuRank, ++playerId)
+		{
+			for(int x = 0; x < sudokuSize; x+=sudokuRank)
+			{
+				playerRef = _players.get(playerId);
+				for(int j = 0; j < sudokuRank; ++j)
+				{
+					for(int i = 0; i < sudokuRank; ++i)
+					{
+						registerMutually(playerRef, playerId, sudokuSize, x+i, y+j);
+					}
+				}
+			}
+		}
 	}
 }

@@ -24,10 +24,7 @@ public class PlayerTest
 				Player.create(
 						new Player.CreateMsg(
 								0,
-								new Position(0,0),
-								Player.PlayerType.ROW,
-								new int[9],
-								new boolean[9]
+								9
 								)
 				),"thePlayer");
 
@@ -41,19 +38,17 @@ public class PlayerTest
 
 		for(int id = 0; id < expectedCnt; id++)
 		{
-			Position position = new Position(id, 0);
 			thePlayer.tell(new Player.RegisterTableMsg(
-					tables.get(id), position, testProbe.getRef()));
+					tables.get(id), id, 0, false/*, testProbe.getRef()*/));
 			Player.RegisteredMsg response = testProbe.receiveMessage();
-			assertEquals(position, response._tablePos);
+			assertEquals(id, response._tableId);
 			assertEquals(true, response._isItDone);
 		}
 
-		Position excessivePosition = new Position(excesiveId, 0);
 		thePlayer.tell(new Player.RegisterTableMsg(
-				tables.get(excesiveId), excessivePosition, testProbe.getRef()));
+				tables.get(excesiveId), excesiveId, 0, false/*, testProbe.getRef()*/));
 		Player.RegisteredMsg response = testProbe.receiveMessage();
-		assertEquals(excessivePosition, response._tablePos);
+		assertEquals(excesiveId, response._tableId);
 		assertEquals(false, response._isItDone);
 	}
 }

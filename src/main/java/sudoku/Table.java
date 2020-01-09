@@ -42,12 +42,12 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	{
 		final ActorRef<Player.Protocol> _playerToRegister;
 		final int _playerId;
-		final ActorRef<RegisteredMsg> _replyTo;
-		public RegisterPlayerMsg(ActorRef<Player.Protocol> playerToRegister, int playerId, ActorRef<RegisteredMsg> replyTo)
+		//final ActorRef<RegisteredMsg> _replyTo;
+		public RegisterPlayerMsg(ActorRef<Player.Protocol> playerToRegister, int playerId/*, ActorRef<RegisteredMsg> replyTo*/)
 		{
 			this._playerToRegister = playerToRegister;
 			this._playerId = playerId;
-			this._replyTo = replyTo;
+			//this._replyTo = replyTo;
 		}
 	}
 
@@ -200,12 +200,12 @@ public class Table extends AbstractBehavior<Table.Protocol>
 		}
 		else if(_players.size() >= 3)
 		{
-			msg._replyTo.tell(new RegisteredMsg(playerId, false));
+			//msg._replyTo.tell(new RegisteredMsg(playerId, false));
 			throw new IncorrectRegisterException("4th Player cannot be registered");
 		}
 
 		_players.put(playerId, msg._playerToRegister);
-		msg._replyTo.tell(new RegisteredMsg(playerId, true));
+		//msg._replyTo.tell(new RegisteredMsg(playerId, true));
 
 		return this;
 	}

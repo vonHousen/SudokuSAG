@@ -7,9 +7,6 @@ import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * Table agent, who moderates negotiations between 3 players for choosing the best number in the Sudoku cell.
  * A child of the Teacher agent.
@@ -142,8 +139,11 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	private final int _tableId;
 	/** Global position of the Table */
 	private final Position _tablePos;
-	/** Data structure for storing Players - agents registered to this Table. */
-	private Map<Integer, ActorRef<Player.Protocol>> _players;
+	/**
+	 * Map from global Player id to internal index and Player reference
+	 * Data structure for storing Players - agents registered to this Table.
+	 */
+	private AgentMap<ActorRef<Player.Protocol>> _players;
 
 	/**
 	 * Public method that calls private constructor.
@@ -161,7 +161,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 		super(context);
 		_tableId = createMsg._tableId;
 		_tablePos = createMsg._tablePos;
-		_players = new HashMap<>();
+		_players = new AgentMap<ActorRef<Player.Protocol>>(3);
 		// context.getLog().info("Table {} created", _TableId);			// left for debugging only
 	}
 
@@ -193,19 +193,13 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	private Behavior<Protocol> onRegisterPlayer(RegisterPlayerMsg msg)
 	{
 		int playerId = msg._playerId;
-
-		if(_players.containsKey(playerId))
-		{
-			_players.remove(playerId);
-		}
-		else if(_players.size() >= 3)
+		if (_players.isFull())
 		{
 			//msg._replyTo.tell(new RegisteredMsg(playerId, false));
 			throw new IncorrectRegisterException("4th Player cannot be registered");
 		}
-
-		_players.put(playerId, msg._playerToRegister);
-		//msg._replyTo.tell(new RegisteredMsg(playerId, true));
+		_players.register(playerId, msg._playerToRegister);
+		//msg._replyTo.tell(new RegisteredMsg(msg._tableId, true));
 
 		return this;
 	}

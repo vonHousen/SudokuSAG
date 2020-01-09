@@ -8,9 +8,6 @@ import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * Playing agent, who actually learns to solve Sudoku.
  * A child of the Teacher agent.
@@ -143,8 +140,11 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	private final int _playerId;
 	/** Structure containing awards and current digit vector */
 	private final Memory _memory;
-	/** Map from global Table id to internal index and Table reference */
-	private final ActorMap<ActorRef<Table.Protocol>> _actorMap;
+	/**
+	 * Map from global Table id to internal index and Table reference
+	 * Data structure for storing Tables - agents registered to this Player.
+	 */
+	private final AgentMap<ActorRef<Table.Protocol>> _tables;
 
 	/**
 	 * Public method that calls private constructor.
@@ -162,7 +162,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		super(context);
 		_playerId = createMsg._playerId;
 		_memory = new Memory(createMsg._sudokuSize);
-		_actorMap = new ActorMap<ActorRef<Table.Protocol>>(createMsg._sudokuSize);
+		_tables = new AgentMap<ActorRef<Table.Protocol>>(createMsg._sudokuSize);
 		// context.getLog().info("Player {} created", _tableId);		// left for debugging only
 	}
 
@@ -194,12 +194,12 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	 */
 	private Behavior<Protocol> onRegisterTable(RegisterTableMsg msg)
 	{
-		if (_actorMap.isFull())
+		if (_tables.isFull())
 		{
 			//msg._replyTo.tell(new RegisteredMsg(msg._tableId, false));
 			throw new IncorrectRegisterException("Excessive Table cannot be registered");
 		}
-		_actorMap.register(msg._tableId, msg._tableToRegister);
+		_tables.register(msg._tableId, msg._tableToRegister);
 		//msg._replyTo.tell(new RegisteredMsg(msg._tableId, true));
 
 		return this;

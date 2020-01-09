@@ -125,7 +125,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	private void spawnPlayers()
 	{
 		final int sudokuSize = _sudoku.getSize();
-		final int maxPlayerCount = sudokuSize*3;
+		final int maxPlayerCount = _sudoku.getPlayerCount();
 		for (int playerId = 0; playerId < maxPlayerCount; ++playerId)
 		{
 			ActorRef<Player.Protocol> newPlayer = getContext().spawn(

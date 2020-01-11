@@ -6,9 +6,9 @@ public class SharedProtocols
 	/** Protocol for negotiations between the Player and the Table. */
 	public interface NegotiationsProtocol {}
 
-	/** Protocol for registering both the Player and the Table by the Teacher */
+	/** Protocol for registering both the Player and the Table by the Teacher. */
 	public interface RegisteringProtocol {}
 
-	/** Protocol for inspecting the Player by the Teacher */
+	/** Protocol for inspecting the Player by the Teacher, initiated by Supervisor. */
 	public interface InspectionProtocol {}
 }

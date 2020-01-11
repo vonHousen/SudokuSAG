@@ -77,7 +77,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 
 	/**
 	 * Reply for a request for memorised Digits and Masks by the Player.
-	 * Memory is represented by a Hashmap, where a key is (global) tableId, and value is a Pair of Digit and Mask.
+	 * Memory is represented by a HashMap, where a key is (global) tableId, and value is a Pair of Digit and Mask.
 	 */
 	public static class MemorisedDigitsMsg implements Protocol, SharedProtocols.InspectionProtocol
 	{
@@ -87,6 +87,18 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		{
 			this._memorisedDigits = memorisedDigits;
 			this._requestedPlayerId = requestedPlayerId;
+		}
+	}
+
+	/** Message commanding the Teacher to inspect it's Players' digits. */
+	public static class InspectChildDigitsMsg implements Protocol, SharedProtocols.InspectionProtocol
+	{
+		public final int[][] _board;
+		public final ActorRef<SudokuSupervisor.Command> _replyTo;
+		public InspectChildDigitsMsg(int[][] board, ActorRef<SudokuSupervisor.Command> replyTo)
+		{
+			this._board = board;
+			this._replyTo = replyTo;
 		}
 	}
 
@@ -134,6 +146,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	{
 		return newReceiveBuilder()
 				.onMessage(SimulateCrashMsg.class, this::onSimulateCrash)
+				.onMessage(InspectChildDigitsMsg.class, this::onInspectChildDigits)
 				.onSignal(PreRestart.class, signal -> onPreRestart())
 				.onSignal(PostStop.class, signal -> onPostStop())
 				.build();
@@ -144,10 +157,28 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	 * @param simulateCrashMsg	crashing message
 	 * @return 		wrapped Behavior
 	 */
-	private Behavior<Teacher.Protocol> onSimulateCrash(SimulateCrashMsg simulateCrashMsg)
+	private Behavior<Protocol> onSimulateCrash(SimulateCrashMsg simulateCrashMsg)
 	{
 		System.out.println("Teacher is simulating crash.");
 		throw new RuntimeException("I crashed!");
+	}
+
+	/**
+	 * Sends MemorisedDigitsRequestMsg to all child Players.
+	 *
+	 * @param msg	message commanding Teacher to inspect Players
+	 * @return 		wrapped Behavior
+	 */
+	private Behavior<Protocol> onInspectChildDigits(InspectChildDigitsMsg msg)
+	{
+		ActorRef<Player.Protocol> player;
+
+		for(int playerId = 0; playerId < _sudoku.getPlayerCount(); playerId++)
+		{
+			player = _players.get(playerId);
+			player.tell(new Player.MemorisedDigitsRequestMsg(getContext().getSelf(), getTableIdsForPlayerId(playerId)));
+		}
+		return this;
 	}
 
 	/**
@@ -282,5 +313,44 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 				}
 			}
 		}
+	}
+
+	/**
+	 * Generates array of tableIds for given playerId.
+	 * @param playerId	(global) ID of a Player
+	 * @return			array of IDs of Tables matching to given Player
+	 */
+	private int[] getTableIdsForPlayerId(int playerId)
+	{
+		int i, tableId, sudokuSize = _sudoku.getSize(), sudokuRank = _sudoku.getRank();
+		int[] tableIDs = new int[sudokuSize];
+
+		// Player is a Column
+		if(playerId >= 0 && playerId < sudokuSize)
+		{
+			for (i = 0, tableId = playerId; i < sudokuSize; i++, tableId += sudokuSize)
+				tableIDs[i] = tableId;
+		}
+		// Row
+		else if(playerId >= sudokuSize && playerId < 2 * sudokuSize)
+		{
+			for (i = 0, tableId = (playerId - sudokuSize) * sudokuSize; i < sudokuSize; i++, tableId += 1)
+				tableIDs[i] = tableId;
+		}
+		// Block
+		else if(playerId >= 2 * sudokuSize && playerId < 3 * sudokuSize)
+		{
+			int r = (playerId - 2* sudokuSize) % sudokuRank;
+			int initTableId = (playerId - 2* sudokuSize - r) * sudokuSize + r * sudokuRank;
+
+			for (i = 0, tableId = initTableId; i < sudokuRank; i++, tableId += sudokuSize)
+				for (int j = 0; j < sudokuRank; j++)
+					tableIDs[sudokuRank * i + j] = tableId + j;
+		}
+		else
+		{
+			throw new RuntimeException("Given playerId is out of range.");
+		}
+		return tableIDs;
 	}
 }

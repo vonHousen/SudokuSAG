@@ -199,6 +199,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	/**
 	 * For given Player, registers to it the Table assigned to given position: (x,y).
 	 * Also, to the very same Table registers given Player.
+	 * On registration on the particular Position, there is also passed to the Player a particular piece of Sudoku.
 	 * @param playerRef		a reference to the Player to whom a Table should be registered (and vice versa)
 	 * @param playerId		ID of the Player
 	 * @param sudokuSize	a size of the Sudoku
@@ -223,7 +224,10 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 				));
 	}
 
-	/** Action of registering all Players to Tables and all Tables to Players during startup. */
+	/**
+	 * Action of registering all Players to Tables and all Tables to Players during startup.
+	 * On registration on the particular Position, there is also passed to the Player a particular piece of Sudoku.
+	 */
 	private void registerAgentsOnSetup()
 	{
 		final int sudokuSize = _sudoku.getSize();

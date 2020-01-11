@@ -33,7 +33,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		}
 	}
 
-	/** Message for registering a Table. */
+	/** Message for registering a Table. Also it passes a piece of Sudoku for given Table's Position. */
 	public static class RegisterTableMsg implements InitialisationProtocol, SharedProtocols.RegisteringProtocol
 	{
 		final ActorRef<Table.Protocol> _tableToRegister;
@@ -183,6 +183,9 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	 * Registers new Table to this Player.
 	 * It is expected that a table position is already registered and it is replaced with the new ActorRef.
 	 * When a excessive Table is about to be registered, IncorrectRegisterException is thrown.
+	 *
+	 * Also it assigns a piece of Sudoku for given Table's Position to the Player's memory (_memory.setField(...)).
+	 *
 	 * Replies with RegisteredMsg.
 	 * @param msg	message for registering new Table
 	 * @return 		wrapped Behavior
@@ -200,6 +203,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 			);
 		}
 		_tables.register(msg._tableId, msg._tableToRegister);
+		_memory.setField(_tables.getIndex(msg._tableId), msg._digit, msg._mask);
 		msg._replyTo.tell(new Teacher.RegisteredTableMsg(msg._tableId, true));
 
 		return this;

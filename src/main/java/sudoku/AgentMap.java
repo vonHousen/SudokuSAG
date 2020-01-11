@@ -1,10 +1,12 @@
 package sudoku;
 
-import akka.actor.typed.ActorRef;
-
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Map from global Table id to internal index and Table reference.
+ * Data structure for storing Tables - agents registered to this Player.
+ */
 public class AgentMap<T>
 {
     /** Map from global agent id to internal index */

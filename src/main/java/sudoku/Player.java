@@ -136,7 +136,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	/** Structure containing awards and current digit vector */
 	private final Memory _memory;
 	/**
-	 * Map from global Table id to internal index and Table reference
+	 * Map from global Table id to internal index and Table reference.
 	 * Data structure for storing Tables - agents registered to this Player.
 	 */
 	private final AgentMap<ActorRef<Table.Protocol>> _tables;

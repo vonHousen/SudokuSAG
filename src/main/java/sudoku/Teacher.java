@@ -250,9 +250,9 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		}
 		// Register blocks (squares)
 		final int sudokuRank = _sudoku.getRank();
-		for(int y = 0; y < sudokuSize; y += sudokuRank, ++playerId)
+		for(int y = 0; y < sudokuSize; y += sudokuRank)
 		{
-			for(int x = 0; x < sudokuSize; x += sudokuRank)
+			for(int x = 0; x < sudokuSize; x += sudokuRank, ++playerId)
 			{
 				playerRef = _players.get(playerId);
 				for(int j = 0; j < sudokuRank; ++j)

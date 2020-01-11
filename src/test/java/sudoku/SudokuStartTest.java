@@ -29,6 +29,6 @@ public class SudokuStartTest
 
 		// below is just printout control
 		try{Thread.sleep(500);} catch (Exception e){}
-		System.out.println("======================================> Test finished");
+		System.out.println("\n======================================> Test finished\n");
 	}
 }

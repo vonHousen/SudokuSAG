@@ -18,7 +18,7 @@ public class TableTest
 	@Test
 	public void testRegisteringPlayers()
 	{
-		TestProbe<Table.RegisteredMsg> testProbe = testKit.createTestProbe();
+		TestProbe<Teacher.Protocol> testProbe = testKit.createTestProbe();
 
 		ActorRef<Table.Protocol> theTable = testKit.spawn(
 				Table.create(new Table.CreateMsg(0, new Position(0,0))),"theTable");
@@ -30,14 +30,15 @@ public class TableTest
 
 		for(int id = 0; id < 3; id++)
 		{
-			theTable.tell(new Table.RegisterPlayerMsg(players.get(id), id/*, testProbe.getRef()*/));
-			Table.RegisteredMsg response = testProbe.receiveMessage();
+			theTable.tell(new Table.RegisterPlayerMsg(players.get(id), id, testProbe.getRef()));
+			Teacher.RegisteredPlayerMsg response = (Teacher.RegisteredPlayerMsg) testProbe.receiveMessage();
 			assertEquals(response._playerId, id);
 			assertEquals(response._isItDone, true);
 		}
 
-		theTable.tell(new Table.RegisterPlayerMsg(players.get(3), 3/*, testProbe.getRef()*/));
-		Table.RegisteredMsg response = testProbe.receiveMessage();
+		System.out.println("\n\t\t\t>>> IncorrectRegisterException expected <<< \n");
+		theTable.tell(new Table.RegisterPlayerMsg(players.get(3), 3, testProbe.getRef()));
+		Teacher.RegisteredPlayerMsg response = (Teacher.RegisteredPlayerMsg) testProbe.receiveMessage();
 		assertEquals(response._playerId, 3);
 		assertEquals(response._isItDone, false);
 	}

@@ -24,6 +24,6 @@ public class TeacherTest
 
 		// below is just printout control
 		try{Thread.sleep(1000);} catch (Exception e){}
-		System.out.println("======================================> Test finished");
+		System.out.println("\n======================================> Test finished\n");
 	}
 }

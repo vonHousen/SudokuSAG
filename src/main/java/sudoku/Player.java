@@ -43,28 +43,23 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		final int _tableId;
 		final int _digit;
 		final boolean _mask;
-		//final ActorRef<RegisteredMsg> _replyTo;
-		public RegisterTableMsg(ActorRef<Table.Protocol> tableToRegister, int tableId, int digit, boolean mask/*, ActorRef<RegisteredMsg> replyTo*/)
+		final ActorRef<Teacher.Protocol> _replyTo;
+		public RegisterTableMsg(
+				ActorRef<Table.Protocol> tableToRegister,
+				int tableId,
+				int digit,
+				boolean mask,
+				ActorRef<Teacher.Protocol> replyTo
+		)
 		{
 			this._tableToRegister = tableToRegister;
 			this._tableId = tableId;
 			this._digit = digit;
 			this._mask = mask;
-			//this._replyTo = replyTo;
+			this._replyTo = replyTo;
 		}
 	}
 
-	/** Message sent out after registering a Table. */
-	public static class RegisteredMsg implements InitialisationProtocol
-	{
-		final int _tableId;
-		final boolean _isItDone;
-		public RegisteredMsg(int tableId, boolean isItDone)
-		{
-			this._tableId = tableId;
-			this._isItDone = isItDone;
-		}
-	}
 
 	/** Abstract class for messages received from Table Agent during negotiations. */
 	public static abstract class NegotiationsMsg implements NegotiationsProtocol
@@ -130,9 +125,13 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	/** Custom exception thrown when excessive Table is about to be registered to this Player */
 	public static class IncorrectRegisterException extends RuntimeException
 	{
-		public IncorrectRegisterException(String msg)
+		final int _excessiveTableId;
+		final int _crashingPlayerId;
+		public IncorrectRegisterException(String msg, int excessiveTableId, int crashingPlayerId)
 		{
 			super(msg);
+			this._excessiveTableId = excessiveTableId;
+			this._crashingPlayerId = crashingPlayerId;
 		}
 	}
 
@@ -196,11 +195,16 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	{
 		if (_tables.isFull())
 		{
-			//msg._replyTo.tell(new RegisteredMsg(msg._tableId, false));
-			throw new IncorrectRegisterException("Excessive Table cannot be registered");
+			msg._replyTo.tell(new Teacher.RegisteredTableMsg(msg._tableId, false));
+			throw new IncorrectRegisterException(
+					"Excessive Table (tableId: " + msg._tableId + ") " +
+							"cannot be registered to the Player (playerId: " + _playerId + ").",
+					msg._tableId,
+					_playerId
+			);
 		}
 		_tables.register(msg._tableId, msg._tableToRegister);
-		//msg._replyTo.tell(new RegisteredMsg(msg._tableId, true));
+		msg._replyTo.tell(new Teacher.RegisteredTableMsg(msg._tableId, true));
 
 		return this;
 	}

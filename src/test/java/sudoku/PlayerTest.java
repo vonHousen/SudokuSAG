@@ -18,7 +18,7 @@ public class PlayerTest
 	@Test
 	public void testRegisteringTables()
 	{
-		TestProbe<Player.RegisteredMsg> testProbe = testKit.createTestProbe();
+		TestProbe<Teacher.Protocol> testProbe = testKit.createTestProbe();
 
 		ActorRef<Player.Protocol> thePlayer = testKit.spawn(
 				Player.create(
@@ -39,15 +39,16 @@ public class PlayerTest
 		for(int id = 0; id < expectedCnt; id++)
 		{
 			thePlayer.tell(new Player.RegisterTableMsg(
-					tables.get(id), id, 0, false/*, testProbe.getRef()*/));
-			Player.RegisteredMsg response = testProbe.receiveMessage();
+					tables.get(id), id, 0, false, testProbe.getRef()));
+			Teacher.RegisteredTableMsg response = (Teacher.RegisteredTableMsg) testProbe.receiveMessage();
 			assertEquals(id, response._tableId);
 			assertEquals(true, response._isItDone);
 		}
 
+		System.out.println("\n\t\t\t>>> IncorrectRegisterException expected <<< \n");
 		thePlayer.tell(new Player.RegisterTableMsg(
-				tables.get(excesiveId), excesiveId, 0, false/*, testProbe.getRef()*/));
-		Player.RegisteredMsg response = testProbe.receiveMessage();
+				tables.get(excesiveId), excesiveId, 0, false, testProbe.getRef()));
+		Teacher.RegisteredTableMsg response = (Teacher.RegisteredTableMsg) testProbe.receiveMessage();
 		assertEquals(excesiveId, response._tableId);
 		assertEquals(false, response._isItDone);
 	}

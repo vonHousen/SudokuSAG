@@ -39,24 +39,16 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	{
 		final ActorRef<Player.Protocol> _playerToRegister;
 		final int _playerId;
-		//final ActorRef<RegisteredMsg> _replyTo;
-		public RegisterPlayerMsg(ActorRef<Player.Protocol> playerToRegister, int playerId/*, ActorRef<RegisteredMsg> replyTo*/)
+		final ActorRef<Teacher.Protocol> _replyTo;
+		public RegisterPlayerMsg(
+				ActorRef<Player.Protocol> playerToRegister,
+				int playerId,
+				ActorRef<Teacher.Protocol> replyTo
+		)
 		{
 			this._playerToRegister = playerToRegister;
 			this._playerId = playerId;
-			//this._replyTo = replyTo;
-		}
-	}
-
-	/** Message sent out after registering a Player. */
-	public static class RegisteredMsg implements InitialisationProtocol
-	{
-		final int _playerId;
-		final boolean _isItDone;
-		public RegisteredMsg(int playerId, boolean isItDone)
-		{
-			this._playerId = playerId;
-			this._isItDone = isItDone;
+			this._replyTo = replyTo;
 		}
 	}
 
@@ -192,14 +184,13 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	 */
 	private Behavior<Protocol> onRegisterPlayer(RegisterPlayerMsg msg)
 	{
-		int playerId = msg._playerId;
 		if (_players.isFull())
 		{
-			//msg._replyTo.tell(new RegisteredMsg(playerId, false));
+			msg._replyTo.tell(new Teacher.RegisteredPlayerMsg(msg._playerId, false));
 			throw new IncorrectRegisterException("4th Player cannot be registered");
 		}
-		_players.register(playerId, msg._playerToRegister);
-		//msg._replyTo.tell(new RegisteredMsg(msg._tableId, true));
+		_players.register(msg._playerId, msg._playerToRegister);
+		msg._replyTo.tell(new Teacher.RegisteredPlayerMsg(msg._playerId, true));
 
 		return this;
 	}

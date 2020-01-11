@@ -42,7 +42,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	 * Message received after registering an agent.
 	 * Extended to provide info whether it was a Player or a Table that was registered.
 	 */
-	public static class RegisteredMsg implements Protocol
+	public static class RegisteredMsg implements Protocol, SharedProtocols.RegisteringProtocol
 	{
 		final int _agentId;
 		final boolean _isItDone;

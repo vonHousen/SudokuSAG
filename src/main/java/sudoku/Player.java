@@ -20,9 +20,6 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	/** Protocol interface for messages for initialisation strategy. */
 	public interface InitialisationProtocol extends Protocol {}
 
-	/** Protocol interface for messages during negotiations. */
-	public interface NegotiationsProtocol extends Protocol {}
-
 	/** Message for creating the Player. */
 	public static class CreateMsg implements InitialisationProtocol
 	{
@@ -37,7 +34,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	}
 
 	/** Message for registering a Table. */
-	public static class RegisterTableMsg implements InitialisationProtocol
+	public static class RegisterTableMsg implements InitialisationProtocol, SharedProtocols.RegisteringProtocol
 	{
 		final ActorRef<Table.Protocol> _tableToRegister;
 		final int _tableId;
@@ -60,9 +57,8 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		}
 	}
 
-
 	/** Abstract class for messages received from Table Agent during negotiations. */
-	public static abstract class NegotiationsMsg implements NegotiationsProtocol
+	public static abstract class NegotiationsMsg implements Protocol, SharedProtocols.NegotiationsProtocol
 	{
 		public final ActorRef<Table.Protocol> _replyTo;
 		public final int _tableId;

@@ -8,4 +8,7 @@ public class SharedProtocols
 
 	/** Protocol for registering both the Player and the Table by the Teacher */
 	public interface RegisteringProtocol {}
+
+	/** Protocol for inspecting the Player by the Teacher */
+	public interface InspectionProtocol {}
 }

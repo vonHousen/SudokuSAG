@@ -9,11 +9,11 @@ import java.util.Map;
  */
 public class AgentMap<T>
 {
-    /** Map from global agent id to internal index */
+    /** Map from global agent id to internal index. */
     private final Map<Integer, Integer> _indices;
-    /** Array of agent references indexed internally */
+    /** Array of agent references indexed internally. */
     private Object[] _agents;
-    /** Numer of agents currently registered */
+    /** Number of agents currently registered. */
     private int _agentCount;
 
     public AgentMap(int maxAgentCount)
@@ -38,7 +38,7 @@ public class AgentMap<T>
     /**
      * Get agent reference by global id.
      * @param id    agent global id
-     * @return  agent reference
+     * @return  	agent reference
      */
     public T getAgentById(int id)
     {
@@ -48,11 +48,11 @@ public class AgentMap<T>
     /**
      * Get internal index by global id.
      * @param id    agent global id
-     * @return  internal index
+     * @return  	internal index
      */
     public int getIndex(int id)
     {
-        return _indices.get(id);
+        return _indices.getOrDefault(id,-1);
     }
 
     /**

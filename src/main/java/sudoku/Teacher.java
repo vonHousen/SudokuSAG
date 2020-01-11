@@ -75,6 +75,20 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		}
 	}
 
+	/**
+	 * Reply for a request for memorised Digits and Masks by the Player.
+	 * Memory is represented by a Hashmap, where a key is (global) tableId, and value is a Pair of Digit and Mask.
+	 */
+	public static class MemorisedDigitsMsg implements Protocol, SharedProtocols.InspectionProtocol
+	{
+		public final Map<Integer,Pair<Integer,Boolean>> _memorisedDigits;
+		public final int _requestedPlayerId;
+		public MemorisedDigitsMsg(Map<Integer,Pair<Integer,Boolean>> memorisedDigits, int requestedPlayerId)
+		{
+			this._memorisedDigits = memorisedDigits;
+			this._requestedPlayerId = requestedPlayerId;
+		}
+	}
 
 	/** Sudoku riddle to be solved. */
 	private final Sudoku _sudoku;

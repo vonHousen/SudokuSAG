@@ -8,6 +8,8 @@ import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 
+import java.util.HashMap;
+
 /**
  * Playing agent, who actually learns to solve Sudoku.
  * A child of the Teacher agent.
@@ -118,6 +120,22 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		}
 	}
 
+	/**
+	 * Message - request for memorised Digits and Masks for given Table IDs by the Player.
+	 * Used for inspection performed by the Teacher and tests.
+	 */
+	public static class MemorisedDigitsRequestMsg implements Protocol, SharedProtocols.InspectionProtocol
+	{
+		public final ActorRef<Teacher.Protocol> _replyTo;
+		public final int[] _tableIds;
+		public MemorisedDigitsRequestMsg(ActorRef<Teacher.Protocol> replyTo, int[] tableIds)
+		{
+			this._replyTo = replyTo;
+			this._tableIds = tableIds;
+		}
+	}
+
+
 	/** Custom exception thrown when excessive Table is about to be registered to this Player */
 	public static class IncorrectRegisterException extends RuntimeException
 	{
@@ -171,6 +189,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	{
 		return newReceiveBuilder()
 				.onMessage(RegisterTableMsg.class, this::onRegisterTable)
+				.onMessage(MemorisedDigitsRequestMsg.class, this::onMemorisedDigitsRequest)
 				.onMessage(AdditionalInfoRequestMsg.class, this::onAdditionalInfoRequest)
 				.onMessage(RejectOfferMsg.class, this::onRejectOffer)
 				.onMessage(NegotiationsPositiveMsg.class, this::onNegotiationsPositive)
@@ -205,6 +224,33 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		_tables.register(msg._tableId, msg._tableToRegister);
 		_memory.setField(_tables.getIndex(msg._tableId), msg._digit, msg._mask);
 		msg._replyTo.tell(new Teacher.RegisteredTableMsg(msg._tableId, true));
+
+		return this;
+	}
+
+	/**
+	 * During inspection, replies with all memorised Digits and Masks.
+	 * Replies with MemorisedDigitsMsg.
+	 * @param msg	inspection request
+	 * @return 		wrapped Behavior
+	 */
+	private Behavior<Protocol> onMemorisedDigitsRequest(MemorisedDigitsRequestMsg msg)
+	{
+		int localIndex, digit;
+		boolean mask;
+		Teacher.MemorisedDigitsMsg replyMsg = new Teacher.MemorisedDigitsMsg(new HashMap<>(), _playerId);
+
+		for(int globalId : msg._tableIds)
+		{
+			localIndex = _tables.getIndex(globalId);
+			if(localIndex < 0)
+				continue;
+
+			digit = _memory.getDigit(localIndex);
+			mask = _memory.getMask(localIndex);
+			replyMsg._memorisedDigits.put(globalId, new Pair<>(digit, mask));
+		}
+		msg._replyTo.tell(replyMsg);
 
 		return this;
 	}

@@ -93,11 +93,9 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	/** Message commanding the Teacher to inspect it's Players' digits. */
 	public static class InspectChildDigitsMsg implements Protocol, SharedProtocols.InspectionProtocol
 	{
-		public final int[][] _board;
-		public final ActorRef<SudokuSupervisor.Command> _replyTo;
-		public InspectChildDigitsMsg(int[][] board, ActorRef<SudokuSupervisor.Command> replyTo)
+		public final ActorRef<Sudoku> _replyTo;
+		public InspectChildDigitsMsg(ActorRef<Sudoku> replyTo)
 		{
-			this._board = board;
 			this._replyTo = replyTo;
 		}
 	}
@@ -107,9 +105,13 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	/** Parent agent */
 	private final ActorRef<SudokuSupervisor.Command> _parent;
 	/** Data structure for storing all Players - child agents. */
-	private final Map<Integer, ActorRef<Player.Protocol>> _players;
+	private Map<Integer, ActorRef<Player.Protocol>> _players;
 	/** Data structure for storing all Tables - child agents. */
-	private final Map<Integer, ActorRef<Table.Protocol>> _tables;
+	private Map<Integer, ActorRef<Table.Protocol>> _tables;
+	/** HashMap for inspected digits. Key: tableId, Value: inspectedDigit. */
+	private Map<Integer, Integer> _inspectedDigits;
+	/** Inspector's reference. */
+	private ActorRef<Sudoku> _inspector;
 
 	/**
 	 * Public method that calls private constructor.
@@ -129,6 +131,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		this._parent = createMsg._replyTo;
 		this._players = new HashMap<>();
 		this._tables = new HashMap<>();
+		this._inspectedDigits = new HashMap<>();
 		context.getLog().info("Teacher created");			// left for debugging only
 
 		spawnPlayers();
@@ -147,6 +150,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		return newReceiveBuilder()
 				.onMessage(SimulateCrashMsg.class, this::onSimulateCrash)
 				.onMessage(InspectChildDigitsMsg.class, this::onInspectChildDigits)
+				.onMessage(MemorisedDigitsMsg.class, this::onMemorisedDigits)
 				.onSignal(PreRestart.class, signal -> onPreRestart())
 				.onSignal(PostStop.class, signal -> onPostStop())
 				.build();
@@ -172,12 +176,38 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	private Behavior<Protocol> onInspectChildDigits(InspectChildDigitsMsg msg)
 	{
 		ActorRef<Player.Protocol> player;
+		_inspectedDigits.clear();
+		_inspector = msg._replyTo;
 
 		for(int playerId = 0; playerId < _sudoku.getPlayerCount(); playerId++)
 		{
 			player = _players.get(playerId);
 			player.tell(new Player.MemorisedDigitsRequestMsg(getContext().getSelf(), getTableIdsForPlayerId(playerId)));
 		}
+		return this;
+	}
+
+	/**
+	 * Gathers received MemorisedDigitsMsg from requested Players.
+	 *
+	 * @param msg	inspection results
+	 * @return 		wrapped Behavior
+	 */
+	private Behavior<Protocol> onMemorisedDigits(MemorisedDigitsMsg msg)
+	{
+		int memorisedDigit;
+		for(int tableId : msg._memorisedDigits.keySet())
+		{
+			memorisedDigit = msg._memorisedDigits.get(tableId).first;
+			if(_inspectedDigits.containsKey(tableId) && _inspectedDigits.get(tableId) != memorisedDigit)
+				throw new RuntimeException("Inspected digits differs on the same Position.");
+
+			_inspectedDigits.put(tableId, memorisedDigit);
+		}
+
+		if(_inspectedDigits.keySet().size() == _tables.keySet().size())		// if it is the last msg to be received
+			_inspector.tell(prepareInspectionResults());
+
 		return this;
 	}
 
@@ -322,7 +352,8 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	 */
 	private int[] getTableIdsForPlayerId(int playerId)
 	{
-		int i, tableId, sudokuSize = _sudoku.getSize(), sudokuRank = _sudoku.getRank();
+		int i, tableId;
+		final int sudokuSize = _sudoku.getSize(), sudokuRank = _sudoku.getRank();
 		int[] tableIDs = new int[sudokuSize];
 
 		// Player is a Column
@@ -352,5 +383,29 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 			throw new RuntimeException("Given playerId is out of range.");
 		}
 		return tableIDs;
+	}
+
+	/**
+	 * Prepares inspection results.
+	 * @return	inspection results - Sudoku made of inspected Digits.
+	 */
+	private Sudoku prepareInspectionResults()
+	{
+		Sudoku results = new Sudoku(_sudoku.getRank());
+		int[][] inspectionResults = new int[_sudoku.getSize()][_sudoku.getSize()];
+		int digit;
+
+		for(int tableId = 0, x = 0, y = -1; tableId < _sudoku.getSize() * _sudoku.getSize(); ++tableId, ++x)
+		{
+			if(tableId % _sudoku.getSize() == 0)
+			{
+				x = 0;
+				++y;
+			}
+			digit = _inspectedDigits.getOrDefault(tableId, -1);
+			inspectionResults[x][y] = digit;
+		}
+		results.setBoard(inspectionResults);
+		return results;
 	}
 }

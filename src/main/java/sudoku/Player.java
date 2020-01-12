@@ -262,36 +262,39 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	 * @param msg	request for additional info
 	 * @return 		wrapped Behavior
 	 */
-	private Behavior<Protocol> onAdditionalInfoRequest(AdditionalInfoRequestMsg msg)
+	private Behavior<Protocol> onAdditionalInfoRequest(AdditionalInfoRequestMsg msg) // specify
 	{
-		// TODO backend
-
-		/* 	Jak w dokumentacji, gracz dostaje wiadomość z requestem i odsyła AdditionalInfoMsg. Returna nie ruszaj.
-			Nie pamiętam tylko co odsyła gdy jest konflikt. Miała być osobna wiadomość?
-
-			odpowiadanie wygląda generalnie tak jak poniżej, tylko popraw nego nulla:)
-			Zamiast msg._replyTo możesz też użyć referencji przechowywanej od momentu rejestracji.
-		 */
-		msg._replyTo.tell(new Table.AdditionalInfoMsg(null, getContext().getSelf(), _playerId));
+		final int length = msg._otherDigits.length;
+		float[] weights = new float[length];
+		boolean[] collisions = new boolean[length];
+		final int index = _tables.getIndex(msg._tableId);
+		for (int i = 0; i < length; ++i)
+		{
+			final int digit = msg._otherDigits[i];
+			weights[i] = _memory.getAward(index, digit);
+			collisions[i] = _memory.getCollision(index, digit);
+		}
+		msg._replyTo.tell(new Table.AdditionalInfoMsg(msg._otherDigits, weights, collisions, getContext().getSelf(), _playerId));
 
 		return this;
 	}
 
 	/**
-	 * Player is informed that it's offer is rejected.
+	 * Player is informed that theirs offer is rejected.
 	 * Replies the Table with OfferMsg.
 	 * @param msg	rejecting message
 	 * @return 		wrapped Behavior
 	 */
-	private Behavior<Protocol> onRejectOffer(RejectOfferMsg msg)
+	private Behavior<Protocol> onRejectOffer(RejectOfferMsg msg) // cancel
 	{
 		// TODO backend
 
 		/* 	Jak w dokumentacji. Powinien sobie zapisać że liczba jest konfliktowa i odesłać stosowne OfferMsg.
 			Nie pamiętam tylko co odsyła gdy jest konflikt. Ale wydaje mi się że OfferMsg ze specjalną wagą może być?
 
-			UWAGA: może dostać tą wiadomość także w sytuacji, gdy Gracz już zaakceptował jakąś ofertę. W takim wypadku
-			powinien cofnąć blokadę tworzoną w czasie onNegotiationsPositive.
+			UWAGA: może dostać tą wiadomość także w sytuacji, gdy Gracz już zaakceptował jakąś ofertę
+			(AssessNegotiationsResultsMsg). W takim wypadku powinien cofnąć blokadę tworzoną w czasie
+			onNegotiationsPositive.
 		 */
 		msg._replyTo.tell(new Table.OfferMsg(0, 0, getContext().getSelf(), _playerId));
 
@@ -304,7 +307,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	 * @param msg	positive result of negotiations in a message
 	 * @return 		wrapped Behavior
 	 */
-	private Behavior<Protocol> onNegotiationsPositive(NegotiationsPositiveMsg msg)
+	private Behavior<Protocol> onNegotiationsPositive(NegotiationsPositiveMsg msg) // winner
 	{
 		// TODO backend
 
@@ -324,7 +327,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	 * @param msg	message announcing final finish of the negotiations
 	 * @return 		wrapped Behavior
 	 */
-	private Behavior<Protocol> onNegotiationsFinished(NegotiationsFinishedMsg msg)
+	private Behavior<Protocol> onNegotiationsFinished(NegotiationsFinishedMsg msg) // inserted
 	{
 		// TODO backend
 

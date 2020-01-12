@@ -76,15 +76,19 @@ public class Table extends AbstractBehavior<Table.Protocol>
 		}
 	}
 
-	/** Message received from the Player, consisting of it's subjective weighs of requested digits. */
+	/** Message received from the Player, consisting of it's subjective weights of requested digits. */
 	public static class AdditionalInfoMsg extends NegotiationsMsg
 	{
-		public final Pair<Integer, Integer>[] _opinions;	// Pair of digit & weigh
+		public final int[] _digits;
+		public final float[] _weights;
+		public final boolean[] _collisions;
 
-		public AdditionalInfoMsg(Pair<Integer, Integer>[] opinions, ActorRef<Player.Protocol> replyTo, int playerId)
+		public AdditionalInfoMsg(int[] digits, float[] weights, boolean[] collisions, ActorRef<Player.Protocol> replyTo, int playerId)
 		{
 			super(replyTo, playerId);
-			this._opinions = opinions;
+			this._digits = digits;
+			this._weights = weights;
+			this._collisions = collisions;
 		}
 	}
 
@@ -199,7 +203,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	 * @param msg	message representing Player's offer of digit to be inputted
 	 * @return		wrapped Behavior
 	 */
-	private Behavior<Protocol> onOffer(OfferMsg msg)
+	private Behavior<Protocol> onOffer(OfferMsg msg) // offer
 	{
 		// TODO backend
 
@@ -227,7 +231,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	 * @param msg	message representing Player's requested weighs for given digits
 	 * @return		wrapped Behavior
 	 */
-	private Behavior<Protocol> onAdditionalInfo(AdditionalInfoMsg msg)
+	private Behavior<Protocol> onAdditionalInfo(AdditionalInfoMsg msg) // specified
 	{
 		// TODO backend
 
@@ -247,7 +251,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	 * @param msg	message with layer's withdrawal along with withdrawn digit
 	 * @return		wrapped Behavior
 	 */
-	private Behavior<Protocol> onWithdrawOffer(WithdrawOfferMsg msg)
+	private Behavior<Protocol> onWithdrawOffer(WithdrawOfferMsg msg) // deny
 	{
 		// TODO backend
 
@@ -266,7 +270,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	 * @param msg	message with Player's acceptance / decline of present negotiations results.
 	 * @return		wrapped Behavior
 	 */
-	private Behavior<Protocol> onAssessNegotiationsResults(AssessNegotiationsResultsMsg msg)
+	private Behavior<Protocol> onAssessNegotiationsResults(AssessNegotiationsResultsMsg msg) // accept
 	{
 		// TODO backend
 

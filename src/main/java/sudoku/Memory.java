@@ -4,6 +4,8 @@ public class Memory
 {
     /** Array of award values. The first index is for field and the second for digit. */
     private final float[][] _awards;
+    /** Array of collisions. The first index is for field and the second for digit. If true, collision occurs. */
+    private final boolean[][] _collisions;
     /** Vector of current sudoku digits */
     private final int[] _digitVector;
     /** Array of flags indicating hard-coded fields. If true, field cannot be modified. */
@@ -12,6 +14,7 @@ public class Memory
     public Memory(int sudokuSize)
     {
         this._awards = new float[sudokuSize][sudokuSize]; // By default initialized to 0
+        this._collisions = new boolean[sudokuSize][sudokuSize];
         this._digitVector = new int[sudokuSize];
         this._mask = new boolean[sudokuSize];
     }
@@ -82,5 +85,32 @@ public class Memory
     public float getAward(int n, int digit)
     {
         return _awards[n][digit];
+    }
+
+    public boolean getCollision(int n, int digit) {return _collisions[n][digit]; }
+
+    /**
+     * Reset memory values that are not retained between iterations.
+     * Should be called each time before starting solving sudoku (before every iteration).
+     * Digit vector and mask have to be initialized for this to work.
+     */
+    public void reset()
+    {
+        final int sudokuSize = _digitVector.length;
+        for (int i = 0; i < sudokuSize; ++i)
+        {
+            if (!_mask[i])
+            {
+                _digitVector[i] = 0;
+            }
+            for (int j = 0; j < sudokuSize; ++j)
+            {
+                _collisions[i][j] = _mask[i]; // Hard-coded fields (probably could just set it to false)
+                if (_mask[i])
+                {
+                    _collisions[j][_digitVector[i]-1] = true;
+                }
+            }
+        }
     }
 }

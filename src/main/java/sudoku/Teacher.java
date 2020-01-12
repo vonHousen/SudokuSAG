@@ -38,14 +38,80 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	/** Message for making the Teacher crash. */
 	public static class SimulateCrashMsg implements Protocol {}
 
+	/**
+	 * Message received after registering an agent.
+	 * Extended to provide info whether it was a Player or a Table that was registered.
+	 */
+	public static class RegisteredMsg implements Protocol, SharedProtocols.RegisteringProtocol
+	{
+		final int _agentId;
+		final boolean _isItDone;
+		public RegisteredMsg(int agentId, boolean isItDone)
+		{
+			this._agentId = agentId;
+			this._isItDone = isItDone;
+		}
+	}
+
+	/** Message received after registering a Player. */
+	public static class RegisteredPlayerMsg extends RegisteredMsg
+	{
+		final int _playerId;
+		public RegisteredPlayerMsg(int playerId, boolean isItDone)
+		{
+			super(playerId, isItDone);
+			this._playerId = playerId;
+		}
+	}
+
+	/** Message received after registering a Table. */
+	public static class RegisteredTableMsg extends RegisteredMsg
+	{
+		final int _tableId;
+		public RegisteredTableMsg(int tableId, boolean isItDone)
+		{
+			super(tableId, isItDone);
+			this._tableId = tableId;
+		}
+	}
+
+	/**
+	 * Reply for a request for memorised Digits and Masks by the Player.
+	 * Memory is represented by a HashMap, where a key is (global) tableId, and value is a Pair of Digit and Mask.
+	 */
+	public static class MemorisedDigitsMsg implements Protocol, SharedProtocols.InspectionProtocol
+	{
+		public final Map<Integer,Pair<Integer,Boolean>> _memorisedDigits;
+		public final int _requestedPlayerId;
+		public MemorisedDigitsMsg(Map<Integer,Pair<Integer,Boolean>> memorisedDigits, int requestedPlayerId)
+		{
+			this._memorisedDigits = memorisedDigits;
+			this._requestedPlayerId = requestedPlayerId;
+		}
+	}
+
+	/** Message commanding the Teacher to inspect it's Players' digits. */
+	public static class InspectChildDigitsMsg implements Protocol, SharedProtocols.InspectionProtocol
+	{
+		public final ActorRef<Sudoku> _replyTo;
+		public InspectChildDigitsMsg(ActorRef<Sudoku> replyTo)
+		{
+			this._replyTo = replyTo;
+		}
+	}
+
 	/** Sudoku riddle to be solved. */
 	private final Sudoku _sudoku;
 	/** Parent agent */
 	private final ActorRef<SudokuSupervisor.Command> _parent;
 	/** Data structure for storing all Players - child agents. */
-	private final Map<Integer, ActorRef<Player.Protocol>> _players;
+	private Map<Integer, ActorRef<Player.Protocol>> _players;
 	/** Data structure for storing all Tables - child agents. */
-	private final Map<Integer, ActorRef<Table.Protocol>> _tables;
+	private Map<Integer, ActorRef<Table.Protocol>> _tables;
+	/** HashMap for inspected digits. Key: tableId, Value: inspectedDigit. */
+	private Map<Integer, Integer> _inspectedDigits;
+	/** Inspector's reference. */
+	private ActorRef<Sudoku> _inspector;
 
 	/**
 	 * Public method that calls private constructor.
@@ -65,6 +131,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		this._parent = createMsg._replyTo;
 		this._players = new HashMap<>();
 		this._tables = new HashMap<>();
+		this._inspectedDigits = new HashMap<>();
 		context.getLog().info("Teacher created");			// left for debugging only
 
 		spawnPlayers();
@@ -82,6 +149,8 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	{
 		return newReceiveBuilder()
 				.onMessage(SimulateCrashMsg.class, this::onSimulateCrash)
+				.onMessage(InspectChildDigitsMsg.class, this::onInspectChildDigits)
+				.onMessage(MemorisedDigitsMsg.class, this::onMemorisedDigits)
 				.onSignal(PreRestart.class, signal -> onPreRestart())
 				.onSignal(PostStop.class, signal -> onPostStop())
 				.build();
@@ -92,10 +161,54 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	 * @param simulateCrashMsg	crashing message
 	 * @return 		wrapped Behavior
 	 */
-	private Behavior<Teacher.Protocol> onSimulateCrash(SimulateCrashMsg simulateCrashMsg)
+	private Behavior<Protocol> onSimulateCrash(SimulateCrashMsg simulateCrashMsg)
 	{
 		System.out.println("Teacher is simulating crash.");
 		throw new RuntimeException("I crashed!");
+	}
+
+	/**
+	 * Sends MemorisedDigitsRequestMsg to all child Players.
+	 *
+	 * @param msg	message commanding Teacher to inspect Players
+	 * @return 		wrapped Behavior
+	 */
+	private Behavior<Protocol> onInspectChildDigits(InspectChildDigitsMsg msg)
+	{
+		ActorRef<Player.Protocol> player;
+		_inspectedDigits.clear();
+		_inspector = msg._replyTo;
+
+		for(int playerId = 0; playerId < _sudoku.getPlayerCount(); playerId++)
+		{
+			player = _players.get(playerId);
+			player.tell(new Player.MemorisedDigitsRequestMsg(getContext().getSelf(), getTableIdsForPlayerId(playerId)));
+		}
+		return this;
+	}
+
+	/**
+	 * Gathers received MemorisedDigitsMsg from requested Players.
+	 *
+	 * @param msg	inspection results
+	 * @return 		wrapped Behavior
+	 */
+	private Behavior<Protocol> onMemorisedDigits(MemorisedDigitsMsg msg)
+	{
+		int memorisedDigit;
+		for(int tableId : msg._memorisedDigits.keySet())
+		{
+			memorisedDigit = msg._memorisedDigits.get(tableId).first;
+			if(_inspectedDigits.containsKey(tableId) && _inspectedDigits.get(tableId) != memorisedDigit)
+				throw new RuntimeException("Inspected digits differs on the same Position.");
+
+			_inspectedDigits.put(tableId, memorisedDigit);
+		}
+
+		if(_inspectedDigits.keySet().size() == _tables.keySet().size())		// if it is the last msg to be received
+			_inspector.tell(prepareInspectionResults());
+
+		return this;
 	}
 
 	/**
@@ -122,108 +235,33 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	}
 
 	/** Action of spawning all child Players agents. */
-	private void spawnPlayers()		// TODO decide if pass a part of sudoku during creation
+	private void spawnPlayers()
 	{
-		int playerId = 0, x, y;
 		final int sudokuSize = _sudoku.getSize();
-
-		// spawn Columns
-		for(x = 0; x < sudokuSize; ++playerId, ++x)
+		for (int playerId = 0; playerId < _sudoku.getPlayerCount(); ++playerId)
 		{
-			int[] digitVector = new int[sudokuSize];
-			boolean[] maskVector = new boolean[sudokuSize];
-			for(int i = 0; i < sudokuSize; ++i)
-			{
-				digitVector[i] = _sudoku.getDigit(x, i);
-				maskVector[i] = _sudoku.getMask(x, i);
-			}
 			ActorRef<Player.Protocol> newPlayer = getContext().spawn(
-					//Behaviors.supervise(		TODO decide whether delete or uncomment
-						Player.create(new Player.CreateMsg(
-							playerId,
-							new Position(x, 0),
-							Player.PlayerType.COLUMN,
-							digitVector,
-							maskVector
-							)
-						)
+					//Behaviors.supervise(		TODO decide if supervise children
+					Player.create(new Player.CreateMsg(playerId, sudokuSize)
+					)
 					//).onFailure(SupervisorStrategy.restart())
 					, "player-" + playerId
 			);
 			_players.put(playerId, newPlayer);
-		}
-
-		// spawn Rows
-		for(y = 0; y < sudokuSize; ++playerId, ++y)
-		{
-			int[] digitVector = new int[sudokuSize];
-			boolean[] maskVector = new boolean[sudokuSize];
-			for(int i = 0; i < sudokuSize; ++i)
-			{
-				digitVector[i] = _sudoku.getDigit(i, y);
-				maskVector[i] = _sudoku.getMask(i, y);
-			}
-			ActorRef<Player.Protocol> newPlayer = getContext().spawn(
-					//Behaviors.supervise(		TODO decide whether delete or uncomment
-						Player.create(new Player.CreateMsg(
-							playerId,
-							new Position(0, y),
-							Player.PlayerType.ROW,
-							digitVector,
-							maskVector
-							)
-						)
-					//).onFailure(SupervisorStrategy.restart())
-					, "player-" + playerId
-			);
-			_players.put(playerId, newPlayer);
-		}
-
-		// spawn Blocks
-		final int blockSize = _sudoku.getRank();
-		for(y = 0; y < sudokuSize; y += blockSize)
-		{
-			for(x = 0; x < sudokuSize; x += blockSize, ++playerId)
-			{
-				int[] digitVector = new int[sudokuSize];
-				boolean[] maskVector = new boolean[sudokuSize];
-				for(int i = 0; i < blockSize; ++i)
-				{
-					for(int j = 0; j < blockSize; ++j)
-					{
-						digitVector[blockSize*j+i] = _sudoku.getDigit(x+i, y+j);
-						maskVector[blockSize*j+i] = _sudoku.getMask(x+i, y+j);
-					}
-				}
-				ActorRef<Player.Protocol> newPlayer = getContext().spawn(
-						//Behaviors.supervise(		TODO decide whether delete or uncomment
-							Player.create(new Player.CreateMsg(
-								playerId,
-								new Position(x, y),
-								Player.PlayerType.BLOCK,
-								digitVector,
-								maskVector
-								)
-							)
-						//).onFailure(SupervisorStrategy.restart())
-						, "player-" + playerId
-				);
-				_players.put(playerId, newPlayer);
-			}
 		}
 	}
 
 	/** Action of spawning all child Tables agents. */
-	private void  spawnTables()		// TODO decide if pass a part of sudoku during creation
+	private void  spawnTables()
 	{
 		int tableId = 0, x, y;
 		final int sudokuSize = _sudoku.getSize();
-		for(y = 0; y < sudokuSize; y++)
+		for(y = 0; y < sudokuSize; ++y)
 		{
-			for(x = 0; x < sudokuSize; x++, tableId++)
+			for(x = 0; x < sudokuSize; ++x, ++tableId)
 			{
 				ActorRef<Table.Protocol> newTable = getContext().spawn(
-						//Behaviors.supervise(		TODO decide whether delete or uncomment
+						//Behaviors.supervise(		TODO decide if supervise children
 						Table.create(new Table.CreateMsg(tableId, new Position(x, y)))
 						//).onFailure(SupervisorStrategy.restart())
 						, "table-" + tableId
@@ -233,9 +271,141 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		}
 	}
 
-	/** Action of registering Players to Tables and Tables to Players. */
-	private void registerAgentsOnSetup()	// TODO
+	/**
+	 * For given Player, registers to it the Table assigned to given position: (x,y).
+	 * Also, to the very same Table registers given Player.
+	 * On registration on the particular Position, there is also passed to the Player a particular piece of Sudoku.
+	 * @param playerRef		a reference to the Player to whom a Table should be registered (and vice versa)
+	 * @param playerId		ID of the Player
+	 * @param sudokuSize	a size of the Sudoku
+	 * @param x				x coordinate of the Position of the Table
+	 * @param y				y coordinate of the Position of the Table
+	 */
+	private void registerMutually(ActorRef<Player.Protocol> playerRef, int playerId, int sudokuSize, int x, int y)
 	{
+		final int tableId = sudokuSize * y + x;
+		ActorRef<Table.Protocol> tableRef = _tables.get(tableId);
+		playerRef.tell(new Player.RegisterTableMsg(
+				tableRef,
+				tableId,
+				_sudoku.getDigit(x, y),
+				_sudoku.getMask(x, y),
+				getContext().getSelf()
+				));
+		tableRef.tell(new Table.RegisterPlayerMsg(
+				playerRef,
+				playerId,
+				getContext().getSelf()
+				));
+	}
 
+	/**
+	 * Action of registering all Players to Tables and all Tables to Players during startup.
+	 * On registration on the particular Position, there is also passed to the Player a particular piece of Sudoku.
+	 */
+	private void registerAgentsOnSetup()
+	{
+		final int sudokuSize = _sudoku.getSize();
+		int playerId = 0;
+		ActorRef<Player.Protocol> playerRef;
+
+		// Register columns
+		for(int x = 0; x < sudokuSize; ++x, ++playerId)
+		{
+			playerRef = _players.get(playerId);
+			for(int y = 0; y < sudokuSize; ++y)
+			{
+				registerMutually(playerRef, playerId, sudokuSize, x, y);
+			}
+		}
+		// Register rows
+		for(int y = 0; y < sudokuSize; ++y, ++playerId)
+		{
+			playerRef = _players.get(playerId);
+			for(int x = 0; x < sudokuSize; ++x)
+			{
+				registerMutually(playerRef, playerId, sudokuSize, x, y);
+			}
+		}
+		// Register blocks (squares)
+		final int sudokuRank = _sudoku.getRank();
+		for(int y = 0; y < sudokuSize; y += sudokuRank)
+		{
+			for(int x = 0; x < sudokuSize; x += sudokuRank, ++playerId)
+			{
+				playerRef = _players.get(playerId);
+				for(int j = 0; j < sudokuRank; ++j)
+				{
+					for(int i = 0; i < sudokuRank; ++i)
+					{
+						registerMutually(playerRef, playerId, sudokuSize, x + i, y + j);
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * Generates array of tableIds for given playerId.
+	 * @param playerId	(global) ID of a Player
+	 * @return			array of IDs of Tables matching to given Player
+	 */
+	private int[] getTableIdsForPlayerId(int playerId)
+	{
+		int i, tableId;
+		final int sudokuSize = _sudoku.getSize(), sudokuRank = _sudoku.getRank();
+		int[] tableIDs = new int[sudokuSize];
+
+		// Player is a Column
+		if(playerId >= 0 && playerId < sudokuSize)
+		{
+			for (i = 0, tableId = playerId; i < sudokuSize; i++, tableId += sudokuSize)
+				tableIDs[i] = tableId;
+		}
+		// Row
+		else if(playerId >= sudokuSize && playerId < 2 * sudokuSize)
+		{
+			for (i = 0, tableId = (playerId - sudokuSize) * sudokuSize; i < sudokuSize; i++, tableId += 1)
+				tableIDs[i] = tableId;
+		}
+		// Block
+		else if(playerId >= 2 * sudokuSize && playerId < 3 * sudokuSize)
+		{
+			int r = (playerId - 2* sudokuSize) % sudokuRank;
+			int initTableId = (playerId - 2* sudokuSize - r) * sudokuSize + r * sudokuRank;
+
+			for (i = 0, tableId = initTableId; i < sudokuRank; i++, tableId += sudokuSize)
+				for (int j = 0; j < sudokuRank; j++)
+					tableIDs[sudokuRank * i + j] = tableId + j;
+		}
+		else
+		{
+			throw new RuntimeException("Given playerId is out of range.");
+		}
+		return tableIDs;
+	}
+
+	/**
+	 * Prepares inspection results.
+	 * @return	inspection results - Sudoku made of inspected Digits.
+	 */
+	private Sudoku prepareInspectionResults()
+	{
+		Sudoku results = new Sudoku(_sudoku.getRank());
+		int[][] inspectionResults = new int[_sudoku.getSize()][_sudoku.getSize()];
+		int digit;
+
+		for(int tableId = 0, x = 0, y = -1; tableId < _sudoku.getSize() * _sudoku.getSize(); ++tableId, ++x)
+		{
+			if(tableId % _sudoku.getSize() == 0)
+			{
+				x = 0;
+				++y;
+			}
+			digit = _inspectedDigits.getOrDefault(tableId, -1);
+			inspectionResults[x][y] = digit;
+		}
+		results.setBoard(inspectionResults);
+		return results;
 	}
 }

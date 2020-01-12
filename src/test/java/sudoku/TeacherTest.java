@@ -24,6 +24,46 @@ public class TeacherTest
 
 		// below is just printout control
 		try{Thread.sleep(1000);} catch (Exception e){}
-		System.out.println("======================================> Test finished");
+		System.out.println("\n======================================> Test finished\n");
+	}
+
+	@Test
+	public void testPassingSudokuDigits()
+	{
+		TestProbe<Sudoku> dummyInspector = testKit.createTestProbe();
+
+		int rank = 3;
+		Sudoku sudoku = new Sudoku(rank);
+		int[][] naturalSudokuBoard = {
+		//		yOri = 0 -------> 8
+		//		x = 0 ----------> 8
+				{0,1,0,3,0,5,0,0,0},	// xOri = 0, y = 0
+				{2,0,0,0,0,0,0,0,0},
+				{0,0,0,0,0,0,0,9,0},
+				{4,0,0,0,8,0,0,0,0},
+				{0,0,7,0,0,0,0,0,0},
+				{6,0,0,0,0,0,0,0,0},
+				{0,0,0,0,0,0,0,0,0},
+				{0,0,0,0,0,0,0,0,0},
+				{0,0,0,0,0,0,0,0,0}		// xOri = 8, y = 8
+		};
+		int[][] transformedSudokuBoard = new int[rank*rank][rank*rank];
+		for(int x = 0; x < rank*rank; ++x)
+			for(int y = 0; y < rank*rank; ++y)
+				transformedSudokuBoard[x][y] = naturalSudokuBoard[y][x];
+		sudoku.setBoard(transformedSudokuBoard);
+
+		ActorRef<Teacher.Protocol> teacher = testKit.spawn(Teacher.create(
+				new Teacher.CreateMsg("teacher1", sudoku, null)
+		), "test4");
+
+		teacher.tell(new Teacher.InspectChildDigitsMsg(dummyInspector.getRef()));
+		Sudoku inspectionResults = dummyInspector.receiveMessage();
+
+		sudoku.printNatural();
+		System.out.println();
+		inspectionResults.printNatural();
+
+		assertEquals(sudoku, inspectionResults);
 	}
 }

@@ -9,6 +9,7 @@ import org.junit.Test;
 import java.util.Vector;
 
 import static junit.framework.TestCase.assertEquals;
+import static org.junit.Assert.assertNull;
 
 public class PlayerTest
 {
@@ -18,42 +19,54 @@ public class PlayerTest
 	@Test
 	public void testRegisteringTables()
 	{
-		TestProbe<Player.RegisteredMsg> testProbe = testKit.createTestProbe();
+		TestProbe<Teacher.Protocol> testTeacher = testKit.createTestProbe();
+
+		final int thePlayerId = 9;
+		final int expectedCnt = 9;
 
 		ActorRef<Player.Protocol> thePlayer = testKit.spawn(
 				Player.create(
-						new Player.CreateMsg(
-								0,
-								new Position(0,0),
-								Player.PlayerType.ROW,
-								new int[9],
-								new boolean[9]
-								)
+						new Player.CreateMsg(thePlayerId, expectedCnt)
 				),"thePlayer");
 
-		final int expectedCnt = 9;
-		final int excesiveId = expectedCnt;
+		final int excessiveId = expectedCnt;
 		Vector<ActorRef<Table.Protocol>> tables = new Vector<>();
 		for(int id = 0; id < expectedCnt + 1; id++)
 			tables.add(testKit.spawn(Table.create(
 					new Table.CreateMsg(id, new Position(id,0))
 			),"table-" + id));
 
+		final int[] digits = {5,6,7,8,4,0,8,4,1};
 		for(int id = 0; id < expectedCnt; id++)
 		{
-			Position position = new Position(id, 0);
 			thePlayer.tell(new Player.RegisterTableMsg(
-					tables.get(id), position, testProbe.getRef()));
-			Player.RegisteredMsg response = testProbe.receiveMessage();
-			assertEquals(position, response._tablePos);
+					tables.get(id),
+					id,
+					digits[id],
+					digits[id] == 0,
+					testTeacher.getRef()
+			));
+			Teacher.RegisteredTableMsg response = (Teacher.RegisteredTableMsg) testTeacher.receiveMessage();
+			assertEquals(id, response._tableId);
 			assertEquals(true, response._isItDone);
 		}
 
-		Position excessivePosition = new Position(excesiveId, 0);
+		final int[] tableIdsToTest = {0,1,2,3,4,5,6,7,8,9};
+		thePlayer.tell(new Player.MemorisedDigitsRequestMsg(testTeacher.getRef(), tableIdsToTest));
+		Teacher.MemorisedDigitsMsg reply = (Teacher.MemorisedDigitsMsg) testTeacher.receiveMessage();
+		assertEquals(thePlayerId, reply._requestedPlayerId);
+		for(int tableId = 0; tableId < 9; ++tableId)
+		{
+			assertEquals((int) digits[tableId], (int) reply._memorisedDigits.get(tableId).first);
+			assertEquals(digits[tableId] == 0, reply._memorisedDigits.get(tableId).first == 0);
+		}
+		assertNull(reply._memorisedDigits.get(9));
+
+		System.out.println("\n\t\t\t>>> IncorrectRegisterException expected <<< \n");
 		thePlayer.tell(new Player.RegisterTableMsg(
-				tables.get(excesiveId), excessivePosition, testProbe.getRef()));
-		Player.RegisteredMsg response = testProbe.receiveMessage();
-		assertEquals(excessivePosition, response._tablePos);
+				tables.get(excessiveId), excessiveId, 0, false, testTeacher.getRef()));
+		Teacher.RegisteredTableMsg response = (Teacher.RegisteredTableMsg) testTeacher.receiveMessage();
+		assertEquals(excessiveId, response._tableId);
 		assertEquals(false, response._isItDone);
 	}
 }

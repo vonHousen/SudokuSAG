@@ -155,6 +155,6 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 	 */
 	private void readSudoku()
 	{
-		_sudoku = new Sudoku(9);	// TODO implement reading _sudoku from file
+		_sudoku = new Sudoku(3);	// TODO implement reading _sudoku from file
 	}
 }

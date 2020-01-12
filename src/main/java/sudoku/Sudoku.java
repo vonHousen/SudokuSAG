@@ -1,5 +1,7 @@
 package sudoku;
 
+import java.util.function.Function;
+
 import static java.lang.Math.sqrt;
 
 /**
@@ -113,5 +115,48 @@ public class Sudoku
 	public int getPlayerCount()
 	{
 		return 3 * _size;
+	}
+
+	/** Prints the board of the Sudoku in natural, human-friendly style. */
+	public void printNatural()
+	{
+		// Named lambda used as a subfunction for printing the horizontal line
+		Function<String, String> getLine = (String c) -> {
+			String line = "";
+			for(int i = 0; i < _size + _rank + 1; ++i)
+				line += c + " ";
+			return line;
+		};
+		String row;
+
+		for(int y = 0; y < _size; ++y)
+		{
+			if(y % _rank == 0)
+				System.out.println(getLine.apply("-"));
+			row = "";
+			for(int x = 0; x < _size; ++x)
+			{
+				if(x % _rank == 0)
+					row += "| ";
+				row += _board[x][y] + " ";
+			}
+			row += "|";
+			System.out.println(row);
+		}
+		System.out.println(getLine.apply("-"));
+	}
+
+	@Override
+	public boolean equals(Object o)
+	{
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+
+		for(int y = 0; y < _size; ++y)
+			for(int x = 0; x < _size; ++x)
+				if(_board[x][y] != ((Sudoku) o).getDigit(x,y))
+					return false;
+
+		return true;
 	}
 }

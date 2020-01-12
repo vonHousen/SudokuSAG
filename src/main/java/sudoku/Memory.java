@@ -3,17 +3,17 @@ package sudoku;
 public class Memory
 {
     /** Array of award values. The first index is for field and the second for digit. */
-    private final int[][] _awards;
+    private final float[][] _awards;
     /** Vector of current sudoku digits */
     private final int[] _digitVector;
     /** Array of flags indicating hard-coded fields. If true, field cannot be modified. */
     private final boolean[] _mask;
 
-    public Memory(int[] digitVector, boolean[] mask)
+    public Memory(int sudokuSize)
     {
-        this._awards = new int[digitVector.length][digitVector.length]; // By default initialized to 0
-        this._digitVector = digitVector;
-        this._mask = mask;
+        this._awards = new float[sudokuSize][sudokuSize]; // By default initialized to 0
+        this._digitVector = new int[sudokuSize];
+        this._mask = new boolean[sudokuSize];
     }
 
     /**
@@ -52,6 +52,23 @@ public class Memory
         _digitVector[n] = digit;
     }
 
+    /**
+     * Set properties of a sudoku field. Should be called only at the initialization phase.
+     * Sets both digit and mask of a field indexed internally.
+     * @param n internal index of the field
+     * @param digit digit value to be set
+     * @param mask  mask value to be set
+     */
+    public void setField(int n, int digit, boolean mask)
+    {
+        if (digit < 0 || digit > _digitVector.length)
+        {
+            throw new Sudoku.DigitOutOfRangeException("Sudoku digit out of range");
+        }
+        _digitVector[n] = digit;
+        _mask[n] = mask;
+    }
+
     public int getDigit(int n)
     {
         return _digitVector[n];
@@ -62,7 +79,7 @@ public class Memory
         return _mask[n];
     }
 
-    public int getAward(int n, int digit)
+    public float getAward(int n, int digit)
     {
         return _awards[n][digit];
     }

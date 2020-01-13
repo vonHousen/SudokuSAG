@@ -217,7 +217,12 @@ public class Table extends AbstractBehavior<Table.Protocol>
 			player inicjujesz referencją przechowywaną od momentu rejestracji Graczy.
 
 		 */
-		ActorRef<Player.Protocol> player = null;
+
+		final int index = _players.getIndex(msg._playerId);
+		ActorRef<Player.Protocol> player = _players.getAgent(index);
+
+
+
 		player.tell(new Player.RejectOfferMsg(0, getContext().getSelf(), _tableId));
 
 		return this;

@@ -152,7 +152,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	/** Global ID of this Player */
 	private final int _playerId;
 	/** Structure containing awards and current digit vector */
-	private final Memory _memory;
+	private final PlayerMemory _memory;
 	/**
 	 * Map from global Table id to internal index and Table reference.
 	 * Data structure for storing Tables - agents registered to this Player.
@@ -174,7 +174,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	{
 		super(context);
 		_playerId = createMsg._playerId;
-		_memory = new Memory(createMsg._sudokuSize);
+		_memory = new PlayerMemory(createMsg._sudokuSize);
 		_tables = new AgentMap<ActorRef<Table.Protocol>>(createMsg._sudokuSize);
 		// context.getLog().info("Player {} created", _tableId);		// left for debugging only
 	}

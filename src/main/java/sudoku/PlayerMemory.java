@@ -1,6 +1,6 @@
 package sudoku;
 
-public class Memory
+public class PlayerMemory
 {
     /** Array of award values. The first index is for field and the second for digit. */
     private final float[][] _awards;
@@ -11,7 +11,7 @@ public class Memory
     /** Array of flags indicating hard-coded fields. If true, field cannot be modified. */
     private final boolean[] _mask;
 
-    public Memory(int sudokuSize)
+    public PlayerMemory(int sudokuSize)
     {
         this._awards = new float[sudokuSize][sudokuSize]; // By default initialized to 0
         this._collisions = new boolean[sudokuSize][sudokuSize];

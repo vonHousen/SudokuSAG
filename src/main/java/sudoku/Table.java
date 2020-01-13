@@ -67,8 +67,8 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	/** Message received from the Player, consisting of it's subjectively the best digit to be inserted */
 	public static class OfferMsg extends NegotiationsMsg
 	{
-		private final int _offeredDigit;
-		private final int _digitWeight;
+		public final int _offeredDigit;
+		public final int _digitWeight;
 
 		public OfferMsg(int offeredDigit, int digitWeight, ActorRef<Player.Protocol> replyTo, int playerId)
 		{
@@ -225,10 +225,50 @@ public class Table extends AbstractBehavior<Table.Protocol>
 
 		final int index = _players.getIndex(msg._playerId);
 		ActorRef<Player.Protocol> player = _players.getAgent(index);
+		final int digit = msg._offeredDigit;
 
+		if (digit == 0) // Player cannot offer anything - Table must finish negotiations immediately
+		{
+			_memory.setBestOffer(0);
+			for (int i = 0; i < 3; ++i)
+			{
+				final ActorRef<Player.Protocol> tempPlayerRef = _players.getAgent(i);
+				if (tempPlayerRef != player) // Don't send message to the Player who wanted to quit negotiations
+				{
+					tempPlayerRef.tell(new Player.NegotiationsFinishedMsg(0, getContext().getSelf(), _tableId));
+				}
+			}
+			return this;
+		}
 
+		if (_memory.isDenied(digit)) // Digit causes conflict for some Player
+		{
+			player.tell(new Player.RejectOfferMsg(digit, getContext().getSelf(), _tableId));
+			return this;
+		}
 
-		player.tell(new Player.RejectOfferMsg(0, getContext().getSelf(), _tableId));
+		// Add offer to memory
+		_memory.setOffer(index, digit, msg._digitWeight);
+
+		if (_memory.getOfferCount() == 3) // Gathered offers from all 3 players
+		{
+			for (int i = 0; i < 3; ++i)
+			{
+				// Check if the Table needs more information from Players
+				int[] unknownDigits = _memory.getUnknownDigits(i);
+				if (unknownDigits.length > 0)
+				{
+					// Ask Player for more information
+					final ActorRef<Player.Protocol> tempPlayerRef = _players.getAgent(i);
+					tempPlayerRef.tell(new Player.AdditionalInfoRequestMsg(unknownDigits, getContext().getSelf(), _tableId));
+				}
+				else
+				{
+					// Table knows all the information it needs from Player #i
+					_memory.setSpecifyFlag(i, true);
+				}
+			}
+		}
 
 		return this;
 	}
@@ -276,7 +316,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	 * Table collects (optimistically) all accepting messages and finishes negotiations.
 	 * Table may also get declining message, what results in continuing the negotiations.
 	 * To prevent synchronization issues Table must check if msg._assessedDigit is up to date with Table's one.
-	 * May reply all Players with RejectOfferMsg or NegotiationsFinishedMsg.
+	 * May reply to all Players with RejectOfferMsg or NegotiationsFinishedMsg.
 	 * @param msg	message with Player's acceptance / decline of present negotiations results.
 	 * @return		wrapped Behavior
 	 */
@@ -286,6 +326,8 @@ public class Table extends AbstractBehavior<Table.Protocol>
 
 		/* 	Tak jak w dokumentacji.
 		 */
+
+
 		ActorRef<Player.Protocol> player = null;
 		player.tell(new Player.RejectOfferMsg(0, getContext().getSelf(), _tableId));
 		player.tell(new Player.NegotiationsFinishedMsg(0, getContext().getSelf(), _tableId));

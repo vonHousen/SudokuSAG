@@ -74,9 +74,15 @@ public class TableMemory
 
     public int getAcceptanceCount() {return _acceptanceCount;}
 
-    public int getBestOffer() {return  _bestOffer;}
+    public boolean isDenied(int digit) {return _deniedMask[digit-1];}
 
     public void setBestOffer(int digit) {_bestOffer = digit;}
+
+    public int getBestOffer() {return  _bestOffer;}
+
+    public void setSpecifyFlag(int n, boolean value) {_specifyFlags[n] = value;}
+
+    public boolean getSpecifyFlag(int n) {return _specifyFlags[n];}
 
     public void setOffer(int n, int digit, int weight)
     {

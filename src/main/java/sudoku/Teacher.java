@@ -262,7 +262,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 			{
 				ActorRef<Table.Protocol> newTable = getContext().spawn(
 						//Behaviors.supervise(		TODO decide if supervise children
-						Table.create(new Table.CreateMsg(tableId, new Position(x, y)))
+						Table.create(new Table.CreateMsg(tableId, new Position(x, y), sudokuSize))
 						//).onFailure(SupervisorStrategy.restart())
 						, "table-" + tableId
 				);

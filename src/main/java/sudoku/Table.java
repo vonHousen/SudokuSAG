@@ -24,10 +24,12 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	{
 		final int _tableId;
 		final Position _tablePos;
-		public CreateMsg(int tableId, Position tablePos)
+		final int _sudokuSize;
+		public CreateMsg(int tableId, Position tablePos, int sudokuSize)
 		{
 			this._tableId = tableId;
 			this._tablePos = tablePos;
+			this._sudokuSize = sudokuSize;
 		}
 	}
 
@@ -132,6 +134,8 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	private final int _tableId;
 	/** Global position of the Table */
 	private final Position _tablePos;
+	/** Structure containing current state of Table */
+	private final TableMemory _memory;
 	/**
 	 * Map from global Player id to internal index and Player reference
 	 * Data structure for storing Players - agents registered to this Table.
@@ -154,6 +158,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 		super(context);
 		_tableId = createMsg._tableId;
 		_tablePos = createMsg._tablePos;
+		_memory = new TableMemory(createMsg._sudokuSize);
 		_players = new AgentMap<ActorRef<Player.Protocol>>(3);
 		// context.getLog().info("Table {} created", _TableId);			// left for debugging only
 	}

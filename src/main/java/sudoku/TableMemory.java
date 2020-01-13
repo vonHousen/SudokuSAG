@@ -1,60 +1,117 @@
 package sudoku;
 
 import akka.actor.typed.javadsl.ActorContext;
+import scala.Array;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
 public class TableMemory
 {
-    /** Values of digits offered by Players. Zeros indicate currently unused slots. */
-    private int[] _offers;
-    /** Weights of digits offered by Players. The first index is for Player and the second for digit (order is the same
-     * as in _offers). */
-    private float[][] _weights;
-    /** Sums of _weights for every offered digit. Valid only when all _weightFlags for a given Player are set to true. */
-    private float[][] _weightSums;
-    /** Flags indicating whether a weight value for a digit is known (for a specific Player). The first index is for
-     * Player and the second for digit (order is the same as in _offers).*/
-    private boolean[][] _weightFlags;
-    /** Mask of denied digits. True means, the digit causes a conflict for some Player. */
-    private boolean[] _deniedMask;
-    /** Number of offers currently proposed by Players */
+    /** Values of digits offered by Players. Indices represent Player. Zeros indicate currently unused slots. */
+    private final int[] _offers;
+    /** Structure of unique offers given by Players. */
+    private final ArrayList<TableOffer> _uniqueOffers;
+    /** Flags indicating that all _weightFlags for a specific Player are set to true for all the _uniqueOffers.
+     * It means that the Table knows all the information it needs from that Player. */
+    private final boolean[] _specifyFlags;
+    /** Mask of forbidden digits. True means, the digit causes a conflict for some Player. */
+    private final boolean[] _deniedMask;
+    /** Number of offers currently proposed by Players (offers don't have to be unique). */
     private int _offerCount;
-    /** Number of acceptance messages received from Players */
+    /** Number of acceptance messages received from Players. Three messages guarantee insertion of _bestOffer digit. */
     private int _acceptanceCount;
-    /** The offer chosen after negotiations with Players. Zero means, the offer was not chosen yet. */
+    /** The offer (digit) chosen after negotiations with Players. Zero means, the offer was not chosen yet. */
     private int _bestOffer;
 
-    private TableMemory(int sudokuSize)
+    public TableMemory(int sudokuSize)
     {
-        _offers = new int[3]; // By default initialized to 0
-        _weights = new float[3][3];
-        _weightFlags = new boolean[3][3]; // By default initialized to false
-        _deniedMask = new boolean[sudokuSize]; // By default initialized to false
-        _offerCount = 0;
-        _acceptanceCount = 0;
-        _bestOffer = 0;
+        this._offers = new int[3]; // By default initialized to 0
+        this._uniqueOffers = new ArrayList<>();
+        this._specifyFlags = new boolean[3]; // By default initialized to false
+        this._deniedMask = new boolean[sudokuSize]; // By default initialized to false
+        this._offerCount = 0;
+        this._acceptanceCount = 0;
+        this._bestOffer = 0;
     }
 
-    public void setOffer(int n, int digit) {_offers[n] = digit;}
-
-    public void setWeight(int n, int m, float weight)
+    /**
+     * Get index of a specific offer in _uniqueOffers based on a given digit.
+     * If no offer with the specified digit is present in _uniqueOffers, container size is returned.
+     * @param digit value of digit of the searched offer
+     * @return  index of _uniqueOffers, containing the searched offer
+     */
+    private int getUniqueOfferIndex(int digit)
     {
-        _weights[n][m] = weight;
-        _weightFlags[n][m] = true;
+        int index = 0;
+        for (TableOffer o : _uniqueOffers)
+        {
+            if (digit == o._digit)
+            {
+                break;
+            }
+            ++index;
+        }
+        return index;
+    }
+
+    /** Custom exception thrown when a Player is about to offer a digit the second time before rejection or withdrawal */
+    public static class OverwriteOfferException extends RuntimeException
+    {
+        final int _playerInternalIndex;
+        public OverwriteOfferException(String msg, int playerInternalIndex)
+        {
+            super(msg);
+            this._playerInternalIndex = playerInternalIndex;
+        }
+    }
+
+    public int getOfferCount() {return _offerCount;}
+
+    public void addAcceptance() {++_acceptanceCount;}
+
+    public int getAcceptanceCount() {return _acceptanceCount;}
+
+    public int getBestOffer() {return  _bestOffer;}
+
+    public void setBestOffer(int digit) {_bestOffer = digit;}
+
+    public void setOffer(int n, int digit, int weight)
+    {
+        if (_offers[n] != 0)
+        {
+            throw new OverwriteOfferException("Cannot overwrite offer before rejecting or withdrawing it.", n);
+        }
+        ++_offerCount;
+        _offers[n] = digit;
+        final int digitIndex = getUniqueOfferIndex(digit);
+        if (digitIndex == _uniqueOffers.size())
+        {
+            _uniqueOffers.add(new TableOffer(digit));
+        }
+        final TableOffer offerRef = _uniqueOffers.get(digitIndex);
+        offerRef._weights[n] = weight;
+        offerRef._weightFlags[n] = true;
+    }
+
+    public void setWeight(int n, int digit, float weight)
+    {
+        final int digitIndex = getUniqueOfferIndex(digit);
+        final TableOffer offerRef = _uniqueOffers.get(digitIndex);
+        offerRef._weights[n] = weight;
+        offerRef._weightFlags[n] = true;
     }
 
     public int[] getUnknownDigits(int n)
     {
-        Set<Integer> unknownDigitsSet = new HashSet<Integer>();
-        for (int i = 0; i < 3; ++i)
+        Set<Integer> unknownDigitsSet = new HashSet<>();
+        for (TableOffer o : _uniqueOffers)
         {
-            final int digit = _offers[i];
-            if (digit != 0 && !_weightFlags[n][i]) // No information about a certain digit
+            if (!o._weightFlags[n])
             {
-                unknownDigitsSet.add(digit);
+                unknownDigitsSet.add(o._digit);
             }
         }
         // Note: cannot use unknownDigitsSet.toArray(), because it returns Integer[] instead of int[]
@@ -68,22 +125,28 @@ public class TableMemory
         return unknownDigitsArray;
     }
 
-    public void denyDigit(int digit)
+    /**
+     * Withdraw all offers with a digit that causes conflict for some player.
+     * @param digit value of offer causing conflict
+     * @return  list of internal indices of Players that have their offers withdrawn
+     */
+    public ArrayList<Integer> withdrawDigit(int digit)
     {
         _deniedMask[digit-1] = true;
-        for (int n = 0; n < 3; ++n)
+        ArrayList<Integer> playerIndices = new ArrayList<>();
+        for (int i = 0; i < 3; ++i)
         {
-            if (_offers[n] == digit)
+            if (_offers[i] == digit)
             {
-                _offers[n] = 0;
-                for (int m = 0; m < 3; ++m)
-                {
-                    _weights[n][m] = 0; // Not needed since _weightFlags[n][m] == false indicates, the value is not valid
-                    _weightFlags[n][m] = false;
-                }
+                playerIndices.add(i);
                 --_offerCount;
             }
+            _specifyFlags[i] = false;
         }
+        final int digitIndex = getUniqueOfferIndex(digit);
+        _uniqueOffers.remove(digitIndex);
+
+        return playerIndices;
     }
 
     public void reset()
@@ -91,14 +154,12 @@ public class TableMemory
         for (int i = 0; i < 3; ++i)
         {
             _offers[i] = 0;
-            for (int j = 0; j < 3; ++j)
-            {
-                _weights[i][j] = 0; // Not needed since _weightFlags[i][j] == false indicates, the value is not valid
-                _weightFlags[i][j] = false;
-            }
+            _specifyFlags[i] = false;
         }
+        _uniqueOffers.clear();
         Arrays.fill(_deniedMask, false);
         _offerCount = 0;
         _acceptanceCount = 0;
+        _bestOffer = 0;
     }
 }

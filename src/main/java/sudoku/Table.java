@@ -7,6 +7,8 @@ import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 
+import java.util.ArrayList;
+
 /**
  * Table agent, who moderates negotiations between 3 players for choosing the best number in the Sudoku cell.
  * A child of the Teacher agent.
@@ -109,22 +111,28 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	/** Message telling if the Player accepted negotiations results or not. */
 	public static class AssessNegotiationsResultsMsg extends NegotiationsMsg
 	{
-		public final boolean _didAccept;
 		public final int _assessedDigit;
 
-		public AssessNegotiationsResultsMsg(boolean didAccept, int assessedDigit, ActorRef<Player.Protocol> replyTo, int playerId)
+		public AssessNegotiationsResultsMsg(int assessedDigit, ActorRef<Player.Protocol> replyTo, int playerId)
 		{
 			super(replyTo, playerId);
-			this._didAccept = didAccept;
 			this._assessedDigit = assessedDigit;
 		}
 	}
-
 
 	/** Custom exception thrown when 4th Player is about to be registered to this table. */
 	public static class IncorrectRegisterException extends RuntimeException
 	{
 		public IncorrectRegisterException(String msg)
+		{
+			super(msg);
+		}
+	}
+
+	/** Custom exception thrown when a Player tries to accept different digit than the one chosen by Table. */
+	public static class BadAcceptException extends RuntimeException
+	{
+		public BadAcceptException(String msg)
 		{
 			super(msg);
 		}
@@ -202,6 +210,77 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	}
 
 	/**
+	 * Table tries to evaluate the best offer if gathered enough information.
+	 * If there's not enough information, Table asks Players for it and waits for response.
+	 * When the best offer is chosen, Table informs all the Players about this.
+	 */
+	private void attemptBestOffer()
+	{
+		if (_memory.getOfferCount() == 3) // Gathered offers from all 3 Players
+		{
+			for (int i = 0; i < 3; ++i)
+			{
+				if (!_memory.getSpecifyFlag(i)) // Table might need more information from Player #i
+				{
+					// If not awaiting for message from Player #i (or the message is going to be outdated)
+					final int[] unknownDigits = _memory.getUnknownDigits(i);
+					// Check if the Table truly needs more information from Player #i
+					if (unknownDigits.length > 0)
+					{
+						// Ask Player #i for more information
+						final ActorRef<Player.Protocol> tempPlayerRef = _players.getAgent(i);
+						tempPlayerRef.tell(new Player.AdditionalInfoRequestMsg(unknownDigits, getContext().getSelf(), _tableId));
+						_memory.setRequestPending(i, true);
+					}
+					// Table already requested or knows the information it needs from Player #i
+					_memory.setSpecifyFlag(i, true);
+				}
+			}
+			// Table knows all the information from all Players (no conflicts)
+			if (_memory.allSpecifyFlagTrue() && _memory.noRequestsPending())
+			{
+				// So it can choose the best offer
+				_memory.chooseBestOffer();
+				final int bestDigit = _memory.getBestOffer();
+				// And tell every Player about it
+				for (int i = 0; i < 3; ++i)
+				{
+					final ActorRef<Player.Protocol> tempPlayerRef = _players.getAgent(i);
+					tempPlayerRef.tell(new Player.NegotiationsPositiveMsg(bestDigit, getContext().getSelf(), _tableId));
+				}
+			}
+		}
+	}
+
+	/**
+	 * Ends negotiations irrevocably.
+	 */
+	private void quitNegotiations()
+	{
+		for (int i = 0; i < 3; ++i)
+		{
+			_players.getAgent(i).tell(new Player.NegotiationsFinishedMsg(
+					_memory.getBestOffer(), getContext().getSelf(), _tableId));
+		}
+	}
+
+	/**
+	 * Register a digit as colliding (denied) and inform proper Players about this fact.
+	 * @param digitColliding	digit to be withdrawn
+	 */
+	private void withdrawAndInform(int digitColliding)
+	{
+		_memory.setBestOffer(0);
+		_memory.resetAcceptanceCount();
+		final ArrayList<Integer> playerIndices = _memory.withdrawDigit(digitColliding);
+		for (Integer n : playerIndices)
+		{
+			final ActorRef<Player.Protocol> tempPlayerRef = _players.getAgent(n);
+			tempPlayerRef.tell(new Player.RejectOfferMsg(digitColliding, getContext().getSelf(), _tableId));
+		}
+	}
+
+	/**
 	 * Receives new offer from registered Player.
 	 * This action formally starts the negotiations.
 	 * May reply all Players with RejectOfferMsg.
@@ -210,34 +289,19 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	 */
 	private Behavior<Protocol> onOffer(OfferMsg msg) // offer
 	{
-		// TODO backend
-
 		/* 	Stolik powinien zebrać oferty (potem ogarniemy timeout) - powinien je liczyć. Jak dostanie wszystkie, to
 			powinien rozesłać AdditionalInfoRequestMsg. Pamiętaj, że stolik nie może czekać aktywnie. Pamiętaj że może
 			dostać tę wiadomość jako update starej oferty.
-			Return zostaw tak jak jest.
-
-
-			odpowiadanie wygląda generalnie tak jak poniżej, tylko popraw nego nulla:)
-			player inicjujesz referencją przechowywaną od momentu rejestracji Graczy.
-
 		 */
 
 		final int index = _players.getIndex(msg._playerId);
-		ActorRef<Player.Protocol> player = _players.getAgent(index);
+		final ActorRef<Player.Protocol> player = _players.getAgent(index);
 		final int digit = msg._offeredDigit;
 
 		if (digit == 0) // Player cannot offer anything - Table must finish negotiations immediately
 		{
 			_memory.setBestOffer(0);
-			for (int i = 0; i < 3; ++i)
-			{
-				final ActorRef<Player.Protocol> tempPlayerRef = _players.getAgent(i);
-				if (tempPlayerRef != player) // Don't send message to the Player who wanted to quit negotiations
-				{
-					tempPlayerRef.tell(new Player.NegotiationsFinishedMsg(0, getContext().getSelf(), _tableId));
-				}
-			}
+			quitNegotiations();
 			return this;
 		}
 
@@ -250,25 +314,8 @@ public class Table extends AbstractBehavior<Table.Protocol>
 		// Add offer to memory
 		_memory.setOffer(index, digit, msg._digitWeight);
 
-		if (_memory.getOfferCount() == 3) // Gathered offers from all 3 players
-		{
-			for (int i = 0; i < 3; ++i)
-			{
-				// Check if the Table needs more information from Players
-				int[] unknownDigits = _memory.getUnknownDigits(i);
-				if (unknownDigits.length > 0)
-				{
-					// Ask Player for more information
-					final ActorRef<Player.Protocol> tempPlayerRef = _players.getAgent(i);
-					tempPlayerRef.tell(new Player.AdditionalInfoRequestMsg(unknownDigits, getContext().getSelf(), _tableId));
-				}
-				else
-				{
-					// Table knows all the information it needs from Player #i
-					_memory.setSpecifyFlag(i, true);
-				}
-			}
-		}
+		// Try choosing the best offer
+		attemptBestOffer();
 
 		return this;
 	}
@@ -283,14 +330,28 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	 */
 	private Behavior<Protocol> onAdditionalInfo(AdditionalInfoMsg msg) // specified
 	{
-		// TODO backend
-
 		/* 	Stolik powinien zebrać wagi i ogarnąć co robić dalej. Jak dostanie info o konflikcie to wydaje mi się że
 			nie powinien nawet czekać na resztę opinii tylko wysłać komu trzeba wiadomość o wycofaniu oferty
 			(RejectOfferMsg) i poprosić spóźnialskich o nowe opinie.
 		 */
-		ActorRef<Player.Protocol> player = null;
-		player.tell(new Player.RejectOfferMsg(0, getContext().getSelf(), _tableId));
+
+		final int index = _players.getIndex(msg._playerId);
+
+		for (int i = 0; i < msg._digits.length; ++i)
+		{
+			if (msg._collisions[i]) // Digit causes collision for the sender Player
+			{
+				withdrawAndInform(msg._digits[i]);
+			}
+			else
+			{
+				_memory.setWeight(index, msg._digits[i], msg._weights[i]);
+			}
+		}
+		_memory.setRequestPending(index, false);
+
+		// Try choosing the best offer
+		attemptBestOffer();
 
 		return this;
 	}
@@ -303,11 +364,13 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	 */
 	private Behavior<Protocol> onWithdrawOffer(WithdrawOfferMsg msg) // deny
 	{
-		// TODO backend
-
 		/* 	Stolik powinien poprawić swoje dane i czekać (ale nie aktywnie!) na kolejny OfferMsg. Nie przewiduję tu
 			odpowiadania komukolwiek, bo po co?
+
+			Łatwiej jest uzyskać stabilny protokół komunikacyjny wysyłając wiadomość powrotną do zgłaszającego.
 		 */
+
+		withdrawAndInform(msg._withdrawnDigit);
 
 		return this;
 	}
@@ -322,15 +385,14 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	 */
 	private Behavior<Protocol> onAssessNegotiationsResults(AssessNegotiationsResultsMsg msg) // accept
 	{
-		// TODO backend
-
-		/* 	Tak jak w dokumentacji.
-		 */
-
-
-		ActorRef<Player.Protocol> player = null;
-		player.tell(new Player.RejectOfferMsg(0, getContext().getSelf(), _tableId));
-		player.tell(new Player.NegotiationsFinishedMsg(0, getContext().getSelf(), _tableId));
+		if (msg._assessedDigit != _memory.getBestOffer())
+		{
+			_memory.incrementAcceptanceCount();
+			if (_memory.allAcceptances())
+			{
+				quitNegotiations();
+			}
+		}
 
 		return this;
 	}

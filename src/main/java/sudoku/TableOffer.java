@@ -8,8 +8,6 @@ public class TableOffer
     public int _digit;
     /** Weights of the _digit given by different Players. Valid only when _weightFlags is true. */
     public final float[] _weights;
-    /** Sum of _weights for the offered _digit. Valid only when _weightFlags are set to true for all Players. */
-    public float _weightsSum;
     /** Flags indicating whether _weights value for the _digit is known for a specific Player. */
     public final boolean[] _weightFlags;
 

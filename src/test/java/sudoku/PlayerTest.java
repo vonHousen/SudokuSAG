@@ -33,7 +33,7 @@ public class PlayerTest
 		Vector<ActorRef<Table.Protocol>> tables = new Vector<>();
 		for(int id = 0; id < expectedCnt + 1; id++)
 			tables.add(testKit.spawn(Table.create(
-					new Table.CreateMsg(id, new Position(id,0))
+					new Table.CreateMsg(id, new Position(id,0), expectedCnt)
 			),"table-" + id));
 
 		final int[] digits = {5,6,7,8,4,0,8,4,1};

@@ -21,7 +21,7 @@ public class TableTest
 		TestProbe<Teacher.Protocol> testProbe = testKit.createTestProbe();
 
 		ActorRef<Table.Protocol> theTable = testKit.spawn(
-				Table.create(new Table.CreateMsg(0, new Position(0,0))),"theTable");
+				Table.create(new Table.CreateMsg(0, new Position(0,0), 9)),"theTable");
 
 		Vector<ActorRef<Player.Protocol>> players = new Vector<>();
 		for(int id = 0; id < 4; id++)

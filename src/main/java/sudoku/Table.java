@@ -230,7 +230,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 						// Ask Player #i for more information
 						final ActorRef<Player.Protocol> tempPlayerRef = _players.getAgent(i);
 						tempPlayerRef.tell(new Player.AdditionalInfoRequestMsg(unknownDigits, getContext().getSelf(), _tableId));
-						_memory.setRequestPending(i, true);
+						_memory.incrementRequestCount(i);
 					}
 					// Table already requested or knows the information it needs from Player #i
 					_memory.setSpecifyFlag(i, true);
@@ -348,7 +348,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 				_memory.setWeight(index, msg._digits[i], msg._weights[i]);
 			}
 		}
-		_memory.setRequestPending(index, false);
+		_memory.decrementRequestCount(index);
 
 		// Try choosing the best offer
 		attemptBestOffer();

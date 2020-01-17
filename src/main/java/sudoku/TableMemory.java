@@ -15,8 +15,8 @@ public class TableMemory
     /** Flags indicating that all _weightFlags for a specific Player are set to true for all the _uniqueOffers.
      * It means that the Table knows all the information it needs from that Player. */
     private final boolean[] _specifyFlags;
-    /** Flag indicating that Table awaits for a message from a certain Player. */
-    private final boolean[] _requestPending;
+    /** Number of requests send to a specific Player (no feedback received). */
+    private final int[] _requestCount;
     /** Mask of forbidden digits. True means, the digit causes a conflict for some Player. */
     private final boolean[] _deniedMask;
     /** Number of offers currently proposed by Players (offers don't have to be unique). */
@@ -31,7 +31,7 @@ public class TableMemory
         this._offers = new int[3]; // By default initialized to 0
         this._uniqueOffers = new ArrayList<>();
         this._specifyFlags = new boolean[3]; // By default initialized to false
-        this._requestPending = new boolean[3]; // By default initialized to false
+        this._requestCount = new int[3]; // By default initialized to 0
         this._deniedMask = new boolean[sudokuSize]; // By default initialized to false
         this._offerCount = 0;
         this._acceptanceCount = 0;
@@ -89,9 +89,11 @@ public class TableMemory
 
     public boolean allSpecifyFlagTrue() {return _specifyFlags[0] && _specifyFlags[1] && _specifyFlags[2];}
 
-    public void setRequestPending(int n, boolean value) {_requestPending[n] = value;}
+    public void incrementRequestCount(int n) {++_requestCount[n];}
 
-    public boolean noRequestsPending() {return _requestPending[0] && _requestPending[1] && _requestPending[2];}
+    public void decrementRequestCount(int n) {--_requestCount[n];}
+
+    public boolean noRequestsPending() {return _requestCount[0] == 0 && _requestCount[1] == 0 && _requestCount[2] == 0;}
 
     public void setOffer(int n, int digit, int weight)
     {
@@ -227,7 +229,7 @@ public class TableMemory
         {
             _offers[i] = 0;
             _specifyFlags[i] = false;
-            _requestPending[i] = false;
+            _requestCount[i] = 0;
         }
         _uniqueOffers.clear();
         Arrays.fill(_deniedMask, false);

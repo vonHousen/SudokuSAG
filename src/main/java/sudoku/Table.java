@@ -129,15 +129,6 @@ public class Table extends AbstractBehavior<Table.Protocol>
 		}
 	}
 
-	/** Custom exception thrown when a Player tries to accept different digit than the one chosen by Table. */
-	public static class BadAcceptException extends RuntimeException
-	{
-		public BadAcceptException(String msg)
-		{
-			super(msg);
-		}
-	}
-
 	/** Global ID of the Table */
 	private final int _tableId;
 	/** Global position of the Table */

@@ -385,7 +385,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	 */
 	private Behavior<Protocol> onAssessNegotiationsResults(AssessNegotiationsResultsMsg msg) // accept
 	{
-		if (msg._assessedDigit != _memory.getBestOffer())
+		if (msg._assessedDigit == _memory.getBestOffer())
 		{
 			_memory.incrementAcceptanceCount();
 			if (_memory.allAcceptances())

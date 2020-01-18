@@ -1,9 +1,5 @@
 package sudoku;
 
-import akka.actor.typed.javadsl.ActorContext;
-import jdk.nashorn.internal.codegen.FunctionSignature;
-import scala.Array;
-
 import java.util.*;
 
 public class TableMemory

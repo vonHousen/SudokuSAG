@@ -316,7 +316,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 			blokuje sobie tę cyfrę. Jak nie, to przesyła stosowne info w wiadomości powrotnej.
 			W wiadomości przekazywana jest również cyfra na jaką się zgadza / nie zgadza - patrz funkcja u stolika.
 		 */
-		msg._replyTo.tell(new Table.AssessNegotiationsResultsMsg(true, 0, getContext().getSelf(), _playerId));
+		//msg._replyTo.tell(new Table.AssessNegotiationsResultsMsg(true, 0, getContext().getSelf(), _playerId));
 
 		return this;
 	}

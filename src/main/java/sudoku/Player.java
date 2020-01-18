@@ -145,6 +145,10 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		}
 	}
 
+	/** Message allowing the agent to start new iteration by sending new offers. */
+	public static class ConsentToStartIterationMsg implements Protocol, SharedProtocols.NewIterationProtocol
+	{}
+
 
 	/** Custom exception thrown when excessive Table is about to be registered to this Player */
 	public static class IncorrectRegisterException extends RuntimeException
@@ -205,6 +209,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 				.onMessage(NegotiationsPositiveMsg.class, this::onNegotiationsPositive)
 				.onMessage(NegotiationsFinishedMsg.class, this::onNegotiationsFinished)
 				.onMessage(ResetMemoryMsg.class, this::onResetMemory)
+				.onMessage(ConsentToStartIterationMsg.class, this::onConsentToStartIteration)
 				.onSignal(PostStop.class, signal -> onPostStop())
 				.build();
 	}
@@ -366,6 +371,19 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		// TODO
 
 		msg._replyTo.tell(new Teacher.PlayerPerformedMemoryResetMsg(_playerId));
+		return this;
+	}
+
+	/**
+	 * Player receives permission to start new iteration.
+	 * It chooses the best offers it can make and sends them to appropriate tables.
+	 * @param msg	permission from the Teacher
+	 * @return		wrapped Behavior
+	 */
+	private Behavior<Protocol> onConsentToStartIteration(ConsentToStartIterationMsg msg)
+	{
+		// TODO
+
 		return this;
 	}
 

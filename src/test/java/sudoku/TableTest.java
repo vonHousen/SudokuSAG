@@ -73,15 +73,15 @@ public class TableTest
 		assertEquals(0, response0._id);
 
 		// Check Table's response for Player's offers
-		theTable.tell(new Table.OfferMsg(1, 1, playerDummy_1.getRef(), 0));
+		theTable.tell(new Table.OfferMsg(1, 1L, playerDummy_1.getRef(), 0));
 		playerDummy_1.expectNoMessage();
 		playerDummy_2.expectNoMessage();
 		playerDummy_3.expectNoMessage();
-		theTable.tell(new Table.OfferMsg(2, 2, playerDummy_2.getRef(), 9));
+		theTable.tell(new Table.OfferMsg(2, 2L, playerDummy_2.getRef(), 9));
 		playerDummy_1.expectNoMessage();
 		playerDummy_2.expectNoMessage();
 		playerDummy_3.expectNoMessage();
-		theTable.tell(new Table.OfferMsg(3, 3, playerDummy_3.getRef(), 18));
+		theTable.tell(new Table.OfferMsg(3, 3L, playerDummy_3.getRef(), 18));
 		Player.AdditionalInfoRequestMsg response1 = (Player.AdditionalInfoRequestMsg) playerDummy_1.receiveMessage();
 		Player.AdditionalInfoRequestMsg response2 = (Player.AdditionalInfoRequestMsg) playerDummy_2.receiveMessage();
 		Player.AdditionalInfoRequestMsg response3 = (Player.AdditionalInfoRequestMsg) playerDummy_3.receiveMessage();
@@ -108,7 +108,7 @@ public class TableTest
 
 		// Simulate replacing conflicting digit
 		theTable.tell(new Table.WithdrawOfferMsg(1, playerDummy_1.getRef(), 0));
-		theTable.tell(new Table.OfferMsg(8, 3, playerDummy_1.getRef(), 0));
+		theTable.tell(new Table.OfferMsg(8, 3L, playerDummy_1.getRef(), 0));
 		playerDummy_1.expectNoMessage();
 		Player.AdditionalInfoRequestMsg response4 = (Player.AdditionalInfoRequestMsg) playerDummy_2.receiveMessage();
 		Player.AdditionalInfoRequestMsg response5 = (Player.AdditionalInfoRequestMsg) playerDummy_3.receiveMessage();

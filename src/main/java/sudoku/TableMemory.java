@@ -91,7 +91,7 @@ public class TableMemory
 
     public boolean noRequestsPending() {return _requestCount[0] == 0 && _requestCount[1] == 0 && _requestCount[2] == 0;}
 
-    public void setOffer(int n, int digit, int weight)
+    public void setOffer(int n, int digit, float weight)
     {
         if (_offers[n] != 0)
         {
@@ -197,8 +197,8 @@ public class TableMemory
     public void chooseBestOffer()
     {
         final Iterator<TableOffer> offerIter = _uniqueOffers.iterator();
-        final ArrayList<Integer> bestDigits = new ArrayList<>();
         TableOffer offerRef = offerIter.next();
+        int bestDigit = offerRef._digit;
         float maxWeightsSum = sumWeights(offerRef);
         while (offerIter.hasNext())
         {
@@ -207,16 +207,10 @@ public class TableMemory
             if (tempSum > maxWeightsSum)
             {
                 maxWeightsSum = tempSum;
-                bestDigits.clear();
-                bestDigits.add(offerRef._digit);
-            }
-            else if (tempSum == maxWeightsSum)
-            {
-                bestDigits.add(offerRef._digit);
+                bestDigit = offerRef._digit;
             }
         }
-
-        _bestOffer = bestDigits.get(0); // Can be adjusted to get random digit
+        _bestOffer = bestDigit;
     }
 
     public void reset()

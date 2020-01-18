@@ -70,9 +70,9 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	public static class OfferMsg extends NegotiationsMsg
 	{
 		public final int _offeredDigit;
-		public final int _digitWeight;
+		public final float _digitWeight;
 
-		public OfferMsg(int offeredDigit, int digitWeight, ActorRef<Player.Protocol> replyTo, int playerId)
+		public OfferMsg(int offeredDigit, float digitWeight, ActorRef<Player.Protocol> replyTo, int playerId)
 		{
 			super(replyTo, playerId);
 			this._offeredDigit = offeredDigit;

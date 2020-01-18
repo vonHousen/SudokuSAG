@@ -6,9 +6,11 @@ import akka.actor.typed.*;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.Vector;
 
 import static junit.framework.TestCase.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class TableTest
 {
@@ -46,35 +48,32 @@ public class TableTest
 	@Test
 	public void testNegotiations()
 	{
-		TestProbe<Teacher.Protocol> teacher = testKit.createTestProbe();
-		TestProbe<Player.Protocol> playerProbe1 = testKit.createTestProbe();
-		TestProbe<Player.Protocol> playerProbe2 = testKit.createTestProbe();
-		TestProbe<Player.Protocol> playerProbe3 = testKit.createTestProbe();
+		// Prepare dummy Players and dummy Teacher
+		TestProbe<Teacher.Protocol> teacherDummy = testKit.createTestProbe();
+		TestProbe<Player.Protocol> playerDummy_1 = testKit.createTestProbe();
+		TestProbe<Player.Protocol> playerDummy_2 = testKit.createTestProbe();
+		TestProbe<Player.Protocol> playerDummy_3 = testKit.createTestProbe();
 
+		// Create new Table to test
 		ActorRef<Table.Protocol> theTable = testKit.spawn(
 				Table.create(new Table.CreateMsg(0, new Position(0,0), 9)),"theTable1");
-		ActorRef<Player.Protocol> player1 = testKit.spawn(
-				Player.create(new Player.CreateMsg(0, 9)));
-		ActorRef<Player.Protocol> player2 = testKit.spawn(
-				Player.create(new Player.CreateMsg(9, 9)));
-		ActorRef<Player.Protocol> player3 = testKit.spawn(
-				Player.create(new Player.CreateMsg(18, 9)));
 
-		theTable.tell(new Table.RegisterPlayerMsg(player1, 0, teacher.getRef()));
-		theTable.tell(new Table.RegisterPlayerMsg(player2, 9, teacher.getRef()));
-		theTable.tell(new Table.RegisterPlayerMsg(player3, 18, teacher.getRef()));
+		// Register dummy Players
+		theTable.tell(new Table.RegisterPlayerMsg(playerDummy_1.getRef(), 0, teacherDummy.getRef()));
+		theTable.tell(new Table.RegisterPlayerMsg(playerDummy_2.getRef(), 9, teacherDummy.getRef()));
+		theTable.tell(new Table.RegisterPlayerMsg(playerDummy_3.getRef(), 18, teacherDummy.getRef()));
 
-
-		theTable.tell(new Table.OfferMsg(1, 1, playerProbe1.getRef(), 0));
-		playerProbe1.expectNoMessage();
-		theTable.tell(new Table.OfferMsg(2, 2, playerProbe2.getRef(), 9));
-		playerProbe2.expectNoMessage();
-		theTable.tell(new Table.OfferMsg(3, 3, playerProbe3.getRef(), 18));
-		//Player.AdditionalInfoRequestMsg response1 = (Player.AdditionalInfoRequestMsg) playerProbe1.receiveMessage();
-		//Player.AdditionalInfoRequestMsg response2 = (Player.AdditionalInfoRequestMsg) playerProbe2.receiveMessage();
-		//Player.AdditionalInfoRequestMsg response3 = (Player.AdditionalInfoRequestMsg) playerProbe3.receiveMessage();
-		//assertEquals(new int[] {2,3},  response1._otherDigits);
-		//assertEquals(new int[] {1,3},  response2._otherDigits);
-		//assertEquals(new int[] {1,2},  response3._otherDigits);
+		// Check Table's response for Player's offers
+		theTable.tell(new Table.OfferMsg(1, 1, playerDummy_1.getRef(), 0));
+		playerDummy_1.expectNoMessage();
+		theTable.tell(new Table.OfferMsg(2, 2, playerDummy_2.getRef(), 9));
+		playerDummy_2.expectNoMessage();
+		theTable.tell(new Table.OfferMsg(3, 3, playerDummy_3.getRef(), 18));
+		Player.AdditionalInfoRequestMsg response1 = (Player.AdditionalInfoRequestMsg) playerDummy_1.receiveMessage();
+		Player.AdditionalInfoRequestMsg response2 = (Player.AdditionalInfoRequestMsg) playerDummy_2.receiveMessage();
+		Player.AdditionalInfoRequestMsg response3 = (Player.AdditionalInfoRequestMsg) playerDummy_3.receiveMessage();
+		assertTrue(Arrays.equals(response1._otherDigits, new int[]{2, 3}));
+		assertTrue(Arrays.equals(response2._otherDigits, new int[]{1, 3}));
+		assertTrue(Arrays.equals(response3._otherDigits, new int[]{1, 2}));
 	}
 }

@@ -274,7 +274,9 @@ public class Player extends AbstractBehavior<Player.Protocol>
 			weights[i] = _memory.getAward(index, digit);
 			collisions[i] = _memory.getCollision(index, digit);
 		}
-		msg._replyTo.tell(new Table.AdditionalInfoMsg(msg._otherDigits, weights, collisions, getContext().getSelf(), _playerId));
+		msg._replyTo.tell(
+				new Table.AdditionalInfoMsg(msg._otherDigits, weights, collisions, getContext().getSelf(), _playerId)
+		);
 
 		return this;
 	}

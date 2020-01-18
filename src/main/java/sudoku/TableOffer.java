@@ -1,7 +1,5 @@
 package sudoku;
 
-import java.util.ArrayList;
-
 public class TableOffer
 {
     /** Value of a digit offered by a Player. */

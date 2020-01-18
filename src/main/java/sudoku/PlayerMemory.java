@@ -27,13 +27,16 @@ public class PlayerMemory
         this._finished = new boolean[sudokuSize]; // By default initialized to false
     }
 
-    public void finish(int n) {_finished[n] = true;}
-
-    public boolean isFinished(int n) {return _finished[n];}
+    public boolean isAccepted(int n) {return _accepted[n];}
 
     public void accept(int n) {_accepted[n] = true;}
 
-    public boolean isAccepted(int n) {return _accepted[n];}
+    public boolean isFinished(int n) {return _finished[n];}
+
+    public void finish(int n)
+    {
+        _finished[n] = true;
+    }
 
     public ArrayList<Integer> finishNegotiations(int n)
     {
@@ -134,18 +137,23 @@ public class PlayerMemory
         final int sudokuSize = _digitVector.length;
         for (int i = 0; i < sudokuSize; ++i)
         {
-            if (!_mask[i])
+            for (int j = 0; j < sudokuSize; ++j)
+            {
+                _collisions[i][j] = _mask[i];
+            }
+            if (_mask[i])
+            {
+                final int digitIndex = _digitVector[i]-1;
+                for (int j = 0; j < sudokuSize; ++j)
+                {
+                    _collisions[j][digitIndex] = true;
+                }
+            }
+            else
             {
                 _digitVector[i] = 0;
             }
-            for (int j = 0; j < sudokuSize; ++j)
-            {
-                _collisions[i][j] = _mask[i]; // Hard-coded fields (probably could just set it to false)
-                if (_mask[i])
-                {
-                    _collisions[j][_digitVector[i]-1] = true;
-                }
-            }
+
             _accepted[i] = false;
             _finished[i] = _mask[i];
         }

@@ -21,8 +21,8 @@ public class PlayerMemory
     {
         this._awards = new float[sudokuSize][sudokuSize]; // By default initialized to 0
         this._collisions = new boolean[sudokuSize][sudokuSize];
-        this._digitVector = new int[sudokuSize];
-        this._mask = new boolean[sudokuSize];
+        this._digitVector = new int[sudokuSize]; // By default initialized to 0
+        this._mask = new boolean[sudokuSize]; // By default initialized to false
         this._accepted = new boolean[sudokuSize]; // By default initialized to false
         this._finished = new boolean[sudokuSize]; // By default initialized to false
     }
@@ -122,10 +122,10 @@ public class PlayerMemory
 
     public float getAward(int n, int digit)
     {
-        return _awards[n][digit];
+        return _awards[n][digit-1];
     }
 
-    public boolean getCollision(int n, int digit) {return _collisions[n][digit];}
+    public boolean getCollision(int n, int digit) {return _collisions[n][digit-1];}
 
     /**
      * Reset memory values that are not retained between iterations.

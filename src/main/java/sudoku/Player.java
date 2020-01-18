@@ -136,6 +136,21 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		}
 	}
 
+	/** Message commanding the agent to reset it's memory due to start of new iteration. */
+	public static class ResetMemoryMsg implements Protocol, SharedProtocols.NewIterationProtocol
+	{
+		public final ActorRef<Teacher.Protocol> _replyTo;
+		public ResetMemoryMsg(ActorRef<Teacher.Protocol> replyTo)
+		{
+			this._replyTo = replyTo;
+		}
+	}
+
+	/** Message allowing the agent to start new iteration by sending new offers. */
+	public static class ConsentToStartIterationMsg implements Protocol, SharedProtocols.NewIterationProtocol
+	{}
+
+
 	/** Custom exception thrown when excessive Table is about to be registered to this Player */
 	public static class IncorrectRegisterException extends RuntimeException
 	{
@@ -226,6 +241,8 @@ public class Player extends AbstractBehavior<Player.Protocol>
 				.onMessage(RejectOfferMsg.class, this::onRejectOffer)
 				.onMessage(NegotiationsPositiveMsg.class, this::onNegotiationsPositive)
 				.onMessage(NegotiationsFinishedMsg.class, this::onNegotiationsFinished)
+				.onMessage(ResetMemoryMsg.class, this::onResetMemory)
+				.onMessage(ConsentToStartIterationMsg.class, this::onConsentToStartIteration)
 				.onSignal(PostStop.class, signal -> onPostStop())
 				.build();
 	}
@@ -306,7 +323,9 @@ public class Player extends AbstractBehavior<Player.Protocol>
 			weights[i] = _memory.getAward(index, digit);
 			collisions[i] = _memory.getCollision(index, digit);
 		}
-		msg._replyTo.tell(new Table.AdditionalInfoMsg(msg._otherDigits, weights, collisions, getContext().getSelf(), _playerId));
+		msg._replyTo.tell(
+				new Table.AdditionalInfoMsg(msg._otherDigits, weights, collisions, getContext().getSelf(), _playerId)
+		);
 
 		return this;
 	}
@@ -393,6 +412,32 @@ public class Player extends AbstractBehavior<Player.Protocol>
 			_memory.setDigit(index, 0);
 			_memory.finish(index);
 		}
+
+		return this;
+	}
+
+	/**
+	 * Player resets it's memory to get ready for new iteration.
+	 * @param msg	message from the Teacher
+	 * @return		wrapped Behavior
+	 */
+	private Behavior<Protocol> onResetMemory(ResetMemoryMsg msg)
+	{
+		// TODO
+
+		msg._replyTo.tell(new Teacher.PlayerPerformedMemoryResetMsg(_playerId));
+		return this;
+	}
+
+	/**
+	 * Player receives permission to start new iteration.
+	 * It chooses the best offers it can make and sends them to appropriate tables.
+	 * @param msg	permission from the Teacher
+	 * @return		wrapped Behavior
+	 */
+	private Behavior<Protocol> onConsentToStartIteration(ConsentToStartIterationMsg msg)
+	{
+		// TODO
 
 		return this;
 	}

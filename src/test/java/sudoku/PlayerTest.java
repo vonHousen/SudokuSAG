@@ -6,10 +6,13 @@ import akka.actor.typed.ActorRef;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.Vector;
 
 import static junit.framework.TestCase.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 
 public class PlayerTest
 {
@@ -68,5 +71,39 @@ public class PlayerTest
 		Teacher.RegisteredTableMsg response = (Teacher.RegisteredTableMsg) testTeacher.receiveMessage();
 		assertEquals(excessiveId, response._tableId);
 		assertEquals(false, response._isItDone);
+	}
+
+	@Test
+	public void testNegotiations()
+	{
+		// Prepare dummy Tables and dummy Teacher
+		TestProbe<Teacher.Protocol> teacherDummy = testKit.createTestProbe();
+		TestProbe<Table.Protocol> tableDummy = testKit.createTestProbe();
+		TestProbe<Table.Protocol> tableOtherDummy = testKit.createTestProbe();
+
+		// Create Player to test
+		ActorRef<Player.Protocol> thePlayer = testKit.spawn(
+				Player.create(new Player.CreateMsg(0, 9)), "theTable1");
+
+		// Register dummy Tables to the Player
+		thePlayer.tell(new Player.RegisterTableMsg(
+				tableDummy.getRef(), 0, 0, false, teacherDummy.getRef()));
+		teacherDummy.receiveMessage();
+		thePlayer.tell(new Player.RegisterTableMsg(
+				tableOtherDummy.getRef(), 9, 5, true, teacherDummy.getRef()));
+		teacherDummy.receiveMessage();
+
+		// Start "new iteration"
+		thePlayer.tell(new Player.ResetMemoryMsg(teacherDummy.getRef()));
+		Teacher.PlayerPerformedMemoryResetMsg response0 =
+				(Teacher.PlayerPerformedMemoryResetMsg) teacherDummy.receiveMessage();
+		assertEquals(0, response0._id);
+
+		// Check Player's response for Table's request for additional info
+		thePlayer.tell(new Player.AdditionalInfoRequestMsg(new int[]{5,6}, tableDummy.getRef(), 0));
+		Table.AdditionalInfoMsg response = (Table.AdditionalInfoMsg) tableDummy.receiveMessage();
+		assertTrue(Arrays.equals(response._digits, new int[]{5, 6}));
+		assertTrue(Arrays.equals(response._collisions, new boolean[]{true, false}));
+		assertTrue(Arrays.equals(response._weights, new float[]{0L, 0L}));
 	}
 }

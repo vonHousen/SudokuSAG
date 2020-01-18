@@ -8,6 +8,7 @@ import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
@@ -135,7 +136,6 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		}
 	}
 
-
 	/** Custom exception thrown when excessive Table is about to be registered to this Player */
 	public static class IncorrectRegisterException extends RuntimeException
 	{
@@ -146,6 +146,38 @@ public class Player extends AbstractBehavior<Player.Protocol>
 			super(msg);
 			this._excessiveTableId = excessiveTableId;
 			this._crashingPlayerId = crashingPlayerId;
+		}
+	}
+
+	/** Custom exception thrown when a Table finishes negotiations with a digit different from what was offered. */
+	public static class BadFinishException extends RuntimeException
+	{
+		final int _finishTableId;
+		final int _crashingPlayerId;
+		final int _playerDigit;
+		final int _tableDigit;
+		public BadFinishException(String msg, int finishTableId, int crashingPlayerId, int playerDigit, int tableDigit)
+		{
+			super(msg);
+			this._finishTableId = finishTableId;
+			this._crashingPlayerId = crashingPlayerId;
+			this._playerDigit = playerDigit;
+			this._tableDigit = tableDigit;
+		}
+	}
+
+	/** Custom exception thrown when a Player receives NegotiationsFinishedMsg with the same digit from more than one Table. */
+	public static class DoubleFinishException extends RuntimeException
+	{
+		final int _finishTableId;
+		final int _crashingPlayerId;
+		final int _resultingDigit;
+		public DoubleFinishException(String msg, int finishTableId, int crashingPlayerId, int resultingDigit)
+		{
+			super(msg);
+			this._finishTableId = finishTableId;
+			this._crashingPlayerId = crashingPlayerId;
+			this._resultingDigit = resultingDigit;
 		}
 	}
 
@@ -329,16 +361,38 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	 */
 	private Behavior<Protocol> onNegotiationsFinished(NegotiationsFinishedMsg msg) // inserted
 	{
-		// TODO backend
-
 		/* 	Generalnie to Gracz przyklepuje sobie blokadę cyfry - tzn że jest ona ostateczna i wpisana.
 
 			UWAGA: dopiero teraz gracz przesyła do pozostałych stolików (jeśli trzeba oczywiście) wiadomość WithdrawOfferMsg.
 			Chyba.:P
 		 */
-		ActorRef<Table.Protocol> table = null;
-		table.tell(new Table.WithdrawOfferMsg(0, getContext().getSelf(), _playerId));
 
+		final int index = _tables.getIndex(msg._tableId);
+		if (msg._resultingDigit != 0) // Finished with non-empty field
+		{
+			final int myDigit = _memory.getDigit(index);
+			if (myDigit != msg._resultingDigit)
+			{
+				throw new BadFinishException("Player finished negotiations with a different digit than Table.",
+						msg._tableId, _playerId, myDigit, msg._resultingDigit);
+			}
+			final ArrayList<Integer> tableIndices = _memory.finishNegotiations(index);
+			for (Integer n : tableIndices)
+			{
+				if (_memory.isFinished(n)) // Digit was already chosen (permanently) on another Table
+				{
+					throw new Player.DoubleFinishException("Digit was already inserted somewhere else.",
+							msg._tableId, _playerId, myDigit);
+				}
+				final ActorRef<Table.Protocol> tempTableRef = _tables.getAgent(n);
+				tempTableRef.tell(new Table.WithdrawOfferMsg(myDigit, getContext().getSelf(), _playerId));
+			}
+		}
+		else
+		{
+			_memory.setDigit(index, 0);
+			_memory.finish(index);
+		}
 
 		return this;
 	}

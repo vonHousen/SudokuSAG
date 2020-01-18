@@ -8,6 +8,7 @@ import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 
+import javax.swing.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -360,14 +361,27 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	 */
 	private Behavior<Protocol> onNegotiationsPositive(NegotiationsPositiveMsg msg) // winner
 	{
-		// TODO backend
-
 		/* 	Wystarczy, że Gracz sobie sprawdzi czy dalej mu pasuje, i jeśli odsyła AssessNegotiationsResultsMsg,
 			w którym zawiera czy akceptuje negocjacje czy nie. Pamiętaj, że jak akceptuje, to w TEJ funkcji natychmiast
 			blokuje sobie tę cyfrę. Jak nie, to przesyła stosowne info w wiadomości powrotnej.
 			W wiadomości przekazywana jest również cyfra na jaką się zgadza / nie zgadza - patrz funkcja u stolika.
 		 */
-		msg._replyTo.tell(new Table.AssessNegotiationsResultsMsg(0, getContext().getSelf(), _playerId));
+
+		final int approvedDigit = msg._approvedDigit;
+		final int index = _tables.getIndex(msg._tableId);
+		final ActorRef<Table.Protocol> tableRef = _tables.getAgent(index);
+		// Check if the digit was already accepted on a different Table
+		if (_memory.alreadyAccepted(approvedDigit))
+		{
+			_memory.setCollision(index, approvedDigit);
+			tableRef.tell(new Table.WithdrawOfferMsg(approvedDigit, getContext().getSelf(), _playerId));
+		}
+		else
+		{
+			_memory.setDigit(index, approvedDigit);
+			_memory.accept(index);
+			tableRef.tell(new Table.AssessNegotiationsResultsMsg(approvedDigit, getContext().getSelf(), _playerId));
+		}
 
 		return this;
 	}
@@ -387,15 +401,17 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		 */
 
 		final int index = _tables.getIndex(msg._tableId);
-		if (msg._resultingDigit != 0) // Finished with non-empty field
+		final int resultingDigit = msg._resultingDigit;
+		if (resultingDigit != 0) // Finished with non-empty field
 		{
 			final int myDigit = _memory.getDigit(index);
-			if (myDigit != msg._resultingDigit)
+			if (myDigit != resultingDigit)
 			{
 				throw new BadFinishException("Player finished negotiations with a different digit than Table.",
-						msg._tableId, _playerId, myDigit, msg._resultingDigit);
+						msg._tableId, _playerId, myDigit, resultingDigit);
 			}
 			final ArrayList<Integer> tableIndices = _memory.finishNegotiations(index);
+			_memory.setDigitColliding(myDigit);
 			for (Integer n : tableIndices)
 			{
 				if (_memory.isFinished(n)) // Digit was already chosen (permanently) on another Table

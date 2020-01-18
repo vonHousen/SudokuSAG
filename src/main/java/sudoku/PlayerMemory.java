@@ -57,6 +57,18 @@ public class PlayerMemory
         return tableIndices;
     }
 
+    public boolean alreadyAccepted(int digit)
+    {
+        for (int i = 0; i < _digitVector.length; ++i)
+        {
+            if (_digitVector[i] == digit && (_accepted[i] || _finished[i]))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * Add reward for current combination of digits.
      * @param amount 	reward added for each non-empty, mutable sudoku field
@@ -110,22 +122,25 @@ public class PlayerMemory
         _mask[n] = mask;
     }
 
-    public int getDigit(int n)
-    {
-        return _digitVector[n];
-    }
+    public int getDigit(int n){return _digitVector[n];}
 
-    public boolean getMask(int n)
-    {
-        return _mask[n];
-    }
+    public boolean getMask(int n) {return _mask[n];}
 
-    public float getAward(int n, int digit)
-    {
-        return _awards[n][digit-1];
-    }
+    public float getAward(int n, int digit) {return _awards[n][digit-1];}
 
     public boolean getCollision(int n, int digit) {return _collisions[n][digit-1];}
+
+    public void setCollision(int n, int digit) {_collisions[n][digit-1] = true;}
+
+    public void setDigitColliding(int digit)
+    {
+        --digit;
+        final int sudokuSize = _digitVector.length;
+        for (int i = 0; i < sudokuSize; ++i)
+        {
+            _collisions[i][digit] = true;
+        }
+    }
 
     /**
      * Reset memory values that are not retained between iterations.
@@ -143,17 +158,12 @@ public class PlayerMemory
             }
             if (_mask[i])
             {
-                final int digitIndex = _digitVector[i]-1;
-                for (int j = 0; j < sudokuSize; ++j)
-                {
-                    _collisions[j][digitIndex] = true;
-                }
+                setDigitColliding(_digitVector[i]);
             }
             else
             {
                 _digitVector[i] = 0;
             }
-
             _accepted[i] = false;
             _finished[i] = _mask[i];
         }

@@ -216,7 +216,7 @@ public class TableMemory
             }
         }
 
-        _bestOffer = bestDigits.get(1); // Can be adjusted to get random digit
+        _bestOffer = bestDigits.get(0); // Can be adjusted to get random digit
     }
 
     public void reset()

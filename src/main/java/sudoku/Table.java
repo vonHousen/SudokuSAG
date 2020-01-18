@@ -407,8 +407,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	 */
 	private Behavior<Protocol> onResetMemory(ResetMemoryMsg msg)
 	{
-		// TODO
-
+		_memory.reset();
 		msg._replyTo.tell(new Teacher.TablePerformedMemoryResetMsg(_tableId));
 		return this;
 	}

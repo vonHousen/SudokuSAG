@@ -1,5 +1,7 @@
 package sudoku;
 
+import java.util.ArrayList;
+
 public class PlayerMemory
 {
     /** Array of award values. The first index is for field and the second for digit. */
@@ -10,6 +12,10 @@ public class PlayerMemory
     private final int[] _digitVector;
     /** Array of flags indicating hard-coded fields. If true, field cannot be modified. */
     private final boolean[] _mask;
+    /** Array of flags indicating that Player accepted offer on a Table. */
+    private final boolean[] _accepted;
+    /** Array of flags indicating that a Table linked to a certain field ended negotiations. */
+    private final boolean[] _finished;
 
     public PlayerMemory(int sudokuSize)
     {
@@ -17,6 +23,35 @@ public class PlayerMemory
         this._collisions = new boolean[sudokuSize][sudokuSize];
         this._digitVector = new int[sudokuSize];
         this._mask = new boolean[sudokuSize];
+        this._accepted = new boolean[sudokuSize]; // By default initialized to false
+        this._finished = new boolean[sudokuSize]; // By default initialized to false
+    }
+
+    public void finish(int n) {_finished[n] = true;}
+
+    public boolean isFinished(int n) {return _finished[n];}
+
+    public void accept(int n) {_accepted[n] = true;}
+
+    public boolean isAccepted(int n) {return _accepted[n];}
+
+    public ArrayList<Integer> finishNegotiations(int n)
+    {
+        _finished[n] = true;
+        _accepted[n] = false;
+        final ArrayList<Integer> tableIndices = new ArrayList<>();
+        final int resultingDigit = _digitVector[n];
+        for (int i = 0; i < _digitVector.length; ++i)
+        {
+            // If the digit was offered on another Table
+            if (_digitVector[i] == resultingDigit)
+            {
+                tableIndices.add(i);
+                _digitVector[i] = 0;
+                _accepted[i] = false;
+            }
+        }
+        return tableIndices;
     }
 
     /**
@@ -87,7 +122,7 @@ public class PlayerMemory
         return _awards[n][digit];
     }
 
-    public boolean getCollision(int n, int digit) {return _collisions[n][digit]; }
+    public boolean getCollision(int n, int digit) {return _collisions[n][digit];}
 
     /**
      * Reset memory values that are not retained between iterations.
@@ -111,6 +146,8 @@ public class PlayerMemory
                     _collisions[j][_digitVector[i]-1] = true;
                 }
             }
+            _accepted[i] = false;
+            _finished[i] = _mask[i];
         }
     }
 }

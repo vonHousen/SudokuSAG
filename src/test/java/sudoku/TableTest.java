@@ -60,8 +60,17 @@ public class TableTest
 
 		// Register dummy Players
 		theTable.tell(new Table.RegisterPlayerMsg(playerDummy_1.getRef(), 0, teacherDummy.getRef()));
+		teacherDummy.receiveMessage();
 		theTable.tell(new Table.RegisterPlayerMsg(playerDummy_2.getRef(), 9, teacherDummy.getRef()));
+		teacherDummy.receiveMessage();
 		theTable.tell(new Table.RegisterPlayerMsg(playerDummy_3.getRef(), 18, teacherDummy.getRef()));
+		teacherDummy.receiveMessage();
+
+		// Start "new iteration"
+		theTable.tell(new Table.ResetMemoryMsg(teacherDummy.getRef()));
+		Teacher.TablePerformedMemoryResetMsg response0 =
+				(Teacher.TablePerformedMemoryResetMsg) teacherDummy.receiveMessage();
+		assertEquals(0, response0._id);
 
 		// Check Table's response for Player's offers
 		theTable.tell(new Table.OfferMsg(1, 1, playerDummy_1.getRef(), 0));

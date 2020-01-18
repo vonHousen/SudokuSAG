@@ -135,6 +135,16 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		}
 	}
 
+	/** Message commanding the agent to reset it's memory due to start of new iteration. */
+	public static class ResetMemoryMsg implements Protocol, SharedProtocols.NewIterationProtocol
+	{
+		public final ActorRef<Teacher.Protocol> _replyTo;
+		public ResetMemoryMsg(ActorRef<Teacher.Protocol> replyTo)
+		{
+			this._replyTo = replyTo;
+		}
+	}
+
 
 	/** Custom exception thrown when excessive Table is about to be registered to this Player */
 	public static class IncorrectRegisterException extends RuntimeException
@@ -194,6 +204,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 				.onMessage(RejectOfferMsg.class, this::onRejectOffer)
 				.onMessage(NegotiationsPositiveMsg.class, this::onNegotiationsPositive)
 				.onMessage(NegotiationsFinishedMsg.class, this::onNegotiationsFinished)
+				.onMessage(ResetMemoryMsg.class, this::onResetMemory)
 				.onSignal(PostStop.class, signal -> onPostStop())
 				.build();
 	}
@@ -342,6 +353,19 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		table.tell(new Table.WithdrawOfferMsg(0, getContext().getSelf(), _playerId));
 
 
+		return this;
+	}
+
+	/**
+	 * Player resets it's memory to get ready for new iteration.
+	 * @param msg	message from the Teacher
+	 * @return		wrapped Behavior
+	 */
+	private Behavior<Protocol> onResetMemory(ResetMemoryMsg msg)
+	{
+		// TODO
+
+		msg._replyTo.tell(new Teacher.PlayerPerformedMemoryResetMsg(_playerId));
 		return this;
 	}
 

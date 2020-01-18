@@ -87,11 +87,17 @@ public class PlayerTest
 
 		// Register dummy Tables to the Player
 		thePlayer.tell(new Player.RegisterTableMsg(
-				tableDummy.getRef(), 0, 0, false, teacherDummy.getRef()
-		));
+				tableDummy.getRef(), 0, 0, false, teacherDummy.getRef()));
+		teacherDummy.receiveMessage();
 		thePlayer.tell(new Player.RegisterTableMsg(
-				tableOtherDummy.getRef(), 9, 5, true, teacherDummy.getRef()
-		));
+				tableOtherDummy.getRef(), 9, 5, true, teacherDummy.getRef()));
+		teacherDummy.receiveMessage();
+
+		// Start "new iteration"
+		thePlayer.tell(new Player.ResetMemoryMsg(teacherDummy.getRef()));
+		Teacher.PlayerPerformedMemoryResetMsg response0 =
+				(Teacher.PlayerPerformedMemoryResetMsg) teacherDummy.receiveMessage();
+		assertEquals(0, response0._id);
 
 		// Check Player's response for Table's request for additional info
 		thePlayer.tell(new Player.AdditionalInfoRequestMsg(new int[]{5,6}, tableDummy.getRef(), 0));

@@ -120,6 +120,17 @@ public class Table extends AbstractBehavior<Table.Protocol>
 		}
 	}
 
+	/** Message commanding the agent to reset it's memory due to start of new iteration. */
+	public static class ResetMemoryMsg implements Protocol, SharedProtocols.NewIterationProtocol
+	{
+		public final ActorRef<Teacher.Protocol> _replyTo;
+		public ResetMemoryMsg(ActorRef<Teacher.Protocol> replyTo)
+		{
+			this._replyTo = replyTo;
+		}
+	}
+
+
 	/** Custom exception thrown when 4th Player is about to be registered to this table. */
 	public static class IncorrectRegisterException extends RuntimeException
 	{
@@ -176,6 +187,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 				.onMessage(AdditionalInfoMsg.class, this::onAdditionalInfo)
 				.onMessage(WithdrawOfferMsg.class, this::onWithdrawOffer)
 				.onMessage(AssessNegotiationsResultsMsg.class, this::onAssessNegotiationsResults)
+				.onMessage(ResetMemoryMsg.class, this::onResetMemory)
 				.build();
 	}
 
@@ -385,6 +397,19 @@ public class Table extends AbstractBehavior<Table.Protocol>
 			}
 		}
 
+		return this;
+	}
+
+	/**
+	 * Table resets it's memory to get ready for new iteration.
+	 * @param msg	message from the Teacher
+	 * @return		wrapped Behavior
+	 */
+	private Behavior<Protocol> onResetMemory(ResetMemoryMsg msg)
+	{
+		// TODO
+
+		msg._replyTo.tell(new Teacher.TablePerformedMemoryResetMsg(_tableId));
 		return this;
 	}
 }

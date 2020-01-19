@@ -129,6 +129,42 @@ public class TableTest
 		assertEquals(2, responseOK2._approvedDigit);
 		assertEquals(2, responseOK3._approvedDigit);
 
-		//
+		// Send some acceptations to the Table but with plot twist
+		theTable.tell(new Table.AcceptNegotiationsResultsMsg(2, playerDummy_1.getRef(), 0));
+		playerDummy_1.expectNoMessage();
+		playerDummy_2.expectNoMessage();
+		playerDummy_3.expectNoMessage();
+		theTable.tell(new Table.WithdrawOfferMsg(2, playerDummy_3.getRef(), 18));
+		playerDummy_1.expectNoMessage();
+		Player.RejectOfferMsg responseReject2 = (Player.RejectOfferMsg) playerDummy_2.receiveMessage();
+		playerDummy_3.expectNoMessage();
+		assertEquals(2, responseReject2._rejectedDigit);
+		theTable.tell(new Table.AcceptNegotiationsResultsMsg(2, playerDummy_2.getRef(), 9));
+		playerDummy_1.expectNoMessage();
+		playerDummy_2.expectNoMessage();
+		playerDummy_3.expectNoMessage();
+
+		// Respond with another digit
+		theTable.tell(new Table.OfferMsg(7, 1L, playerDummy_2.getRef(), 9));
+		Player.AdditionalInfoRequestMsg response6 = (Player.AdditionalInfoRequestMsg) playerDummy_1.receiveMessage();
+		playerDummy_2.expectNoMessage();
+		Player.AdditionalInfoRequestMsg response7 = (Player.AdditionalInfoRequestMsg) playerDummy_3.receiveMessage();
+		assertTrue(Arrays.equals(response6._otherDigits, new int[]{7}));
+		assertTrue(Arrays.equals(response7._otherDigits, new int[]{7}));
+
+		// Send to the Table more info about replaced offer
+		theTable.tell(new Table.AdditionalInfoMsg(
+				new int[]{7}, new float[]{1L}, new boolean[]{false, false}, playerDummy_1.getRef(), 0));
+		playerDummy_1.expectNoMessage();
+		playerDummy_2.expectNoMessage();
+		playerDummy_3.expectNoMessage();
+		theTable.tell(new Table.AdditionalInfoMsg(
+				new int[]{7}, new float[]{1L}, new boolean[]{false, false}, playerDummy_3.getRef(), 18));
+		Player.NegotiationsPositiveMsg responseOK4 = (Player.NegotiationsPositiveMsg) playerDummy_1.receiveMessage();
+		Player.NegotiationsPositiveMsg responseOK5 = (Player.NegotiationsPositiveMsg) playerDummy_2.receiveMessage();
+		Player.NegotiationsPositiveMsg responseOK6 = (Player.NegotiationsPositiveMsg) playerDummy_3.receiveMessage();
+		assertEquals(3, responseOK4._approvedDigit);
+		assertEquals(3, responseOK5._approvedDigit);
+		assertEquals(3, responseOK6._approvedDigit);
 	}
 }

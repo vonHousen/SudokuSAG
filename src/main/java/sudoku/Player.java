@@ -28,11 +28,12 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	{
 		final int _playerId;
 		final int _sudokuSize;
-
-		public CreateMsg(int playerId, int sudokuSize)
+		final ActorRef<Teacher.Protocol> _replyTo;
+		public CreateMsg(int playerId, int sudokuSize, ActorRef<Teacher.Protocol> replyTo)
 		{
 			this._playerId = playerId;
 			this._sudokuSize = sudokuSize;
+			this._replyTo = replyTo;
 		}
 	}
 
@@ -222,6 +223,8 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	 * Data structure for storing Tables - agents registered to this Player.
 	 */
 	private final AgentMap<ActorRef<Table.Protocol>> _tables;
+	/** Reference to Player's parent - the Teacher */
+	private final ActorRef<Teacher.Protocol> _parent;
 
 	/**
 	 * Public method that calls private constructor.
@@ -240,6 +243,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		_playerId = createMsg._playerId;
 		_memory = new PlayerMemory(createMsg._sudokuSize);
 		_tables = new AgentMap<ActorRef<Table.Protocol>>(createMsg._sudokuSize);
+		_parent = createMsg._replyTo;
 		// context.getLog().info("Player {} created", _tableId);		// left for debugging only
 	}
 

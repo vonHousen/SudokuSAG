@@ -25,9 +25,9 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	{
 		final String _name;
 		final Sudoku _sudoku;
-		final ActorRef<SudokuSupervisor.Command> _replyTo;
+		final ActorRef<SudokuSupervisor.Protocol> _replyTo;
 
-		public CreateMsg(String name, Sudoku sudoku, ActorRef<SudokuSupervisor.Command> replyTo)
+		public CreateMsg(String name, Sudoku sudoku, ActorRef<SudokuSupervisor.Protocol> replyTo)
 		{
 			this._name = name;
 			this._sudoku = sudoku;
@@ -36,7 +36,8 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	}
 
 	/** Message for making the Teacher crash. */
-	public static class SimulateCrashMsg implements Protocol {}
+	public static class SimulateCrashMsg implements Protocol
+	{}
 
 	/**
 	 * Message received after registering an agent.
@@ -128,10 +129,22 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		}
 	}
 
+	/** Message reporting negotiation's finish for a one of Tables, providing solution - a digit */
+	public static class TableFinishedNegotiationsMsg implements Protocol
+	{
+		public final int _digit;
+		public final int _tableId;
+		public TableFinishedNegotiationsMsg(int digit, int tableId)
+		{
+			this._digit = digit;
+			this._tableId = tableId;
+		}
+	}
+
 	/** Sudoku riddle to be solved. */
 	private final Sudoku _sudoku;
 	/** Parent agent */
-	private final ActorRef<SudokuSupervisor.Command> _parent;
+	private final ActorRef<SudokuSupervisor.Protocol> _parent;
 	/** Data structure for storing all Players - child agents. */
 	private Map<Integer, ActorRef<Player.Protocol>> _players;
 	/** Data structure for storing all Tables - child agents. */
@@ -182,6 +195,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 				.onMessage(MemorisedDigitsMsg.class, this::onMemorisedDigits)
 				.onMessage(TablePerformedMemoryResetMsg.class, this::onTablePerformedMemoryReset)
 				.onMessage(PlayerPerformedMemoryResetMsg.class, this::onPlayerPerformedMemoryReset)
+				.onMessage(TableFinishedNegotiationsMsg.class, this::onTableFinishedNegotiations)
 				.onSignal(PreRestart.class, signal -> onPreRestart())
 				.onSignal(PostStop.class, signal -> onPostStop())
 				.build();
@@ -267,6 +281,19 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	}
 
 	/**
+	 * Teacher collects messages reporting negotiations' solutions.
+	 * When collected last message - it should call prepareForNewIterationAndRun and returnNewSolution.
+	 * @param msg	message containing solution - a digit for a specific Position in Sudoku riddle
+	 * @return 		wrapped Behavior
+	 */
+	private Behavior<Protocol> onTableFinishedNegotiations(TableFinishedNegotiationsMsg msg)
+	{
+		// TODO Emil - patrz opis
+
+		return this;
+	}
+
+	/**
 	 * Handler of PostStop signal.
 	 * Expected after stopping agent.
 	 * @return 		wrapped Behavior
@@ -297,7 +324,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		{
 			ActorRef<Player.Protocol> newPlayer = getContext().spawn(
 					//Behaviors.supervise(		TODO Kamil - decide if supervise children
-					Player.create(new Player.CreateMsg(playerId, sudokuSize)
+					Player.create(new Player.CreateMsg(playerId, sudokuSize, getContext().getSelf())
 					)
 					//).onFailure(SupervisorStrategy.restart())
 					, "player-" + playerId
@@ -317,7 +344,8 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 			{
 				ActorRef<Table.Protocol> newTable = getContext().spawn(
 						//Behaviors.supervise(		TODO Kamil - decide if supervise children
-						Table.create(new Table.CreateMsg(tableId, new Position(x, y), sudokuSize))
+						Table.create(new Table.CreateMsg(
+								tableId, new Position(x, y), sudokuSize, getContext().getSelf()))
 						//).onFailure(SupervisorStrategy.restart())
 						, "table-" + tableId
 				);
@@ -487,5 +515,17 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	{
 		for(ActorRef<Player.Protocol> player : _players.values())
 			player.tell(new Player.ConsentToStartIterationMsg());
+	}
+
+	/**
+	 * After collecting all parts of current iteration's solution - all digits, Teacher returns new solution as a whole
+	 * represented by Sudoku object to the parent - SudokuSupervisor.
+	 */
+	private void returnNewSolution()
+	{
+		Sudoku newSolution = new Sudoku(_sudoku.getRank());
+		// TODO Emil - patrz opis
+
+		_parent.tell(new SudokuSupervisor.IterationFinishedMsg(newSolution));
 	}
 }

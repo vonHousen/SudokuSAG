@@ -14,15 +14,16 @@ import akka.actor.typed.javadsl.Receive;
  * Existence required by Akka.
  * Parent of Teacher agent.
  */
-public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
+public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Protocol>
 {
 	/** Abstract interface for all commands (messages) passed to the Agent. */
-	public interface Command {}
+	public interface Protocol
+	{}
 
 	/**
 	 * Message for controlled termination of the agent.
 	 */
-	public static final class TerminateMsg implements Command
+	public static final class TerminateMsg implements Protocol
 	{
 		final long _requestId;
 		final ActorRef<String> _replyTo;
@@ -35,7 +36,7 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 	}
 
 	/** Message for making the Teacher crash. */
-	public static class SimulateTeacherCrashMsg implements Command
+	public static class SimulateTeacherCrashMsg implements Protocol
 	{
 		final ActorRef<String> _replyTo;
 		public SimulateTeacherCrashMsg(ActorRef<String> replyTo)
@@ -45,12 +46,22 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 	}
 
 	/** Message when Teacher is going to be restarted. */
-	public static class TeacherWillRestartMsg implements Command
+	public static class TeacherWillRestartMsg implements Protocol
 	{
 		final String _msg;
 		public TeacherWillRestartMsg(String msg)
 		{
 			this._msg = msg;
+		}
+	}
+
+	/** Message received from the Teacher on every iteration's finish, containing new solution of the Sudoku riddle. */
+	public static class IterationFinishedMsg implements Protocol
+	{
+		public final Sudoku _newSolution;
+		public IterationFinishedMsg(Sudoku newSolution)
+		{
+			this._newSolution = newSolution;
 		}
 	}
 
@@ -66,12 +77,12 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 	 * Existence required by Akka.
 	 * @return 		wrapped Behavior
 	 */
-	public static Behavior<SudokuSupervisor.Command> create()
+	public static Behavior<Protocol> create()
 	{
 		return Behaviors.setup(SudokuSupervisor::new);
 	}
 
-	private SudokuSupervisor(ActorContext<SudokuSupervisor.Command> context)
+	private SudokuSupervisor(ActorContext<Protocol> context)
 	{
 		super(context);
 		context.getLog().info("SudokuSupervisor started");
@@ -91,12 +102,13 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 	 * @return 		wrapped Behavior
 	 */
 	@Override
-	public Receive<SudokuSupervisor.Command> createReceive()
+	public Receive<Protocol> createReceive()
 	{
 		return newReceiveBuilder()
 				.onMessage(TerminateMsg.class, this::onTermination)
 				.onMessage(SimulateTeacherCrashMsg.class, this::onSimulateTeacherCrash)
-				.onMessage(TeacherWillRestartMsg.class, this::onTeacherWillRestartMsg)
+				.onMessage(TeacherWillRestartMsg.class, this::onTeacherWillRestart)
+				.onMessage(IterationFinishedMsg.class, this::onIterationFinished)
 				.onSignal(PostStop.class, signal -> onPostStop())
 				.build();
 	}
@@ -118,7 +130,7 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 	 * @param terminateMsg	termination message
 	 * @return 		wrapped Behavior
 	 */
-	private Behavior<SudokuSupervisor.Command> onTermination(TerminateMsg terminateMsg)
+	private Behavior<Protocol> onTermination(TerminateMsg terminateMsg)
 	{
 		getContext().getLog().info("SudokuSupervisor will be terminated.");
 		terminateMsg._replyTo.tell("I will be terminated.");
@@ -131,7 +143,7 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 	 * @param msg	 message simulating crash
 	 * @return 		wrapped Behavior
 	 */
-	private Behavior<SudokuSupervisor.Command> onSimulateTeacherCrash(SimulateTeacherCrashMsg msg)
+	private Behavior<Protocol> onSimulateTeacherCrash(SimulateTeacherCrashMsg msg)
 	{
 		_teacher.tell(new Teacher.SimulateCrashMsg());
 		_simulationParent = msg._replyTo;
@@ -144,9 +156,21 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 	 * @param msg	 respond just before restart
 	 * @return 		wrapped Behavior
 	 */
-	private Behavior<SudokuSupervisor.Command> onTeacherWillRestartMsg(TeacherWillRestartMsg msg)
+	private Behavior<Protocol> onTeacherWillRestart(TeacherWillRestartMsg msg)
 	{
 		_simulationParent.tell(msg._msg);
+		return this;
+	}
+
+	/**
+	 * As every iteration finishes, SudokuSupervisor saves new (iterated) solution on the hard drive.
+	 * @param msg	message containing new solution represented by Sudoku object
+	 * @return 		wrapped Behavior
+	 */
+	private Behavior<Protocol> onIterationFinished(IterationFinishedMsg msg)
+	{
+		// TODO Emil - zapisywanie kolejnej iteracji rozwiazania do pliku
+
 		return this;
 	}
 
@@ -155,6 +179,6 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Command>
 	 */
 	private void readSudoku()
 	{
-		_sudoku = new Sudoku(3);	// TODO implement reading _sudoku from file
+		_sudoku = new Sudoku(3);	// TODO Emil - odczytywanie zadanego sudoku z pliku
 	}
 }

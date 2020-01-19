@@ -17,7 +17,7 @@ public class TeacherTest
 	public void testCrashingTeacher()
 	{
 		TestProbe<String> testProbe = testKit.createTestProbe();
-		ActorRef<SudokuSupervisor.Command> guardian = testKit.spawn(SudokuSupervisor.create(),"test3");
+		ActorRef<SudokuSupervisor.Protocol> guardian = testKit.spawn(SudokuSupervisor.create(),"test3");
 		guardian.tell(new SudokuSupervisor.SimulateTeacherCrashMsg(testProbe.getRef()));
 		String response = testProbe.receiveMessage();
 		assertEquals("I will be restarted.", response);

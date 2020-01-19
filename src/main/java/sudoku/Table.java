@@ -27,11 +27,13 @@ public class Table extends AbstractBehavior<Table.Protocol>
 		final int _tableId;
 		final Position _tablePos;
 		final int _sudokuSize;
-		public CreateMsg(int tableId, Position tablePos, int sudokuSize)
+		final ActorRef<Teacher.Protocol> _replyTo;
+		public CreateMsg(int tableId, Position tablePos, int sudokuSize, ActorRef<Teacher.Protocol> replyTo)
 		{
 			this._tableId = tableId;
 			this._tablePos = tablePos;
 			this._sudokuSize = sudokuSize;
+			this._replyTo = replyTo;
 		}
 	}
 
@@ -151,6 +153,9 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	 * Data structure for storing Players - agents registered to this Table.
 	 */
 	private AgentMap<ActorRef<Player.Protocol>> _players;
+	/** Reference to Table's parent - the Teacher */
+	private final ActorRef<Teacher.Protocol> _parent;
+
 
 	/**
 	 * Public method that calls private constructor.
@@ -170,6 +175,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 		_tablePos = createMsg._tablePos;
 		_memory = new TableMemory(createMsg._sudokuSize);
 		_players = new AgentMap<ActorRef<Player.Protocol>>(3);
+		_parent = createMsg._replyTo;
 		// context.getLog().info("Table {} created", _TableId);			// left for debugging only
 	}
 

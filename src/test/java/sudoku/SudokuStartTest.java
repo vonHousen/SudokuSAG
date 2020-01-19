@@ -15,7 +15,7 @@ public class SudokuStartTest
 	public void testSimpleStart()
 	{
 		TestProbe<Void> testProbe = testKit.createTestProbe();
-		ActorRef<SudokuSupervisor.Command> guardian = testKit.spawn(SudokuSupervisor.create(),"test1");
+		ActorRef<SudokuSupervisor.Protocol> guardian = testKit.spawn(SudokuSupervisor.create(),"test1");
 		testProbe.expectNoMessage();
 	}
 
@@ -23,7 +23,7 @@ public class SudokuStartTest
 	public void testSupervisorTermination()
 	{
 		TestProbe<String> testProbe = testKit.createTestProbe();
-		ActorRef<SudokuSupervisor.Command> guardian = testKit.spawn(SudokuSupervisor.create(),"test2");
+		ActorRef<SudokuSupervisor.Protocol> guardian = testKit.spawn(SudokuSupervisor.create(),"test2");
 		guardian.tell(new SudokuSupervisor.TerminateMsg(0L, testProbe.getRef()));
 		testProbe.expectMessage("I will be terminated.");
 

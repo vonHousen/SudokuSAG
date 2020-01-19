@@ -10,7 +10,7 @@ public class SudokuStart
 {
 	public static void main(String[] args)
 	{
-		final ActorSystem<SudokuSupervisor.Command> sudokuGuardian
+		final ActorSystem<SudokuSupervisor.Protocol> sudokuGuardian
 				= ActorSystem.create(SudokuSupervisor.create(), "startSudoku");
 		try
 		{

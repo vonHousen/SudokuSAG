@@ -28,14 +28,14 @@ public class PlayerTest
 
 		ActorRef<Player.Protocol> thePlayer = testKit.spawn(
 				Player.create(
-						new Player.CreateMsg(thePlayerId, expectedCnt)
+						new Player.CreateMsg(thePlayerId, expectedCnt, testTeacher.getRef())
 				),"thePlayer");
 
 		final int excessiveId = expectedCnt;
 		Vector<ActorRef<Table.Protocol>> tables = new Vector<>();
 		for(int id = 0; id < expectedCnt + 1; id++)
 			tables.add(testKit.spawn(Table.create(
-					new Table.CreateMsg(id, new Position(id,0), expectedCnt)
+					new Table.CreateMsg(id, new Position(id,0), expectedCnt, testTeacher.getRef())
 			),"table-" + id));
 
 		final int[] digits = {5,6,7,8,4,0,8,4,1};
@@ -85,7 +85,7 @@ public class PlayerTest
 
 		// Create Player to test
 		ActorRef<Player.Protocol> thePlayer = testKit.spawn(
-				Player.create(new Player.CreateMsg(0, 9)), "theTable1");
+				Player.create(new Player.CreateMsg(0, 9, teacherDummy.getRef())), "theTable1");
 
 
 		// Register dummy Tables to the Player
@@ -187,7 +187,7 @@ public class PlayerTest
 
 		// Create Player to test
 		ActorRef<Player.Protocol> thePlayer = testKit.spawn(
-				Player.create(new Player.CreateMsg(0, 9)), "theTable2");
+				Player.create(new Player.CreateMsg(0, 9, teacherDummy.getRef())), "theTable2");
 
 
 		// Register dummy Tables to the Player

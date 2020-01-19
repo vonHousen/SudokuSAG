@@ -439,17 +439,17 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	 */
 	private Behavior<Protocol> onNegotiationsFinished(NegotiationsFinishedMsg msg) // inserted
 	{
-		final int index = _tables.getIndex(msg._tableId);
+		final int tableIndex = _tables.getIndex(msg._tableId);
 		final int resultingDigit = msg._resultingDigit;
 		if (resultingDigit != 0) // Finished with non-empty field
 		{
-			final int myDigit = _memory.getDigit(index);
+			final int myDigit = _memory.getDigit(tableIndex);
 			if (myDigit != resultingDigit)
 			{
 				throw new BadFinishException("Player finished negotiations with a different digit than Table.",
 						msg._tableId, _playerId, myDigit, resultingDigit);
 			}
-			final ArrayList<Integer> tableIndices = _memory.finishNegotiations(index);
+			final ArrayList<Integer> tableIndices = _memory.finishNegotiations(tableIndex);
 			_memory.setDigitColliding(myDigit);
 			for (Integer n : tableIndices)
 			{
@@ -462,8 +462,8 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		}
 		else
 		{
-			_memory.setDigit(index, 0);
-			_memory.finish(index);
+			_memory.setDigit(tableIndex, 0);
+			_memory.finish(tableIndex);
 		}
 
 		return this;

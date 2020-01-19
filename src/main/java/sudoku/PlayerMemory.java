@@ -6,8 +6,8 @@ import java.util.Collections;
 
 public class PlayerMemory
 {
-    /** Array of award values. The first index is for field and the second for digit. */
-    private final float[][] _awards;
+    /** Array of reward values. The first index is for field and the second for digit. */
+    private final float[][] _rewards;
     /** Array of collisions. The first index is for field and the second for digit. If true, collision occurs. */
     private final boolean[][] _collisions;
     /** Vector of current sudoku digits */
@@ -42,7 +42,7 @@ public class PlayerMemory
 
     public PlayerMemory(int sudokuSize)
     {
-        this._awards = new float[sudokuSize][sudokuSize]; // By default initialized to 0
+        this._rewards = new float[sudokuSize][sudokuSize]; // By default initialized to 0
         this._collisions = new boolean[sudokuSize][sudokuSize];
         this._digitVector = new int[sudokuSize]; // By default initialized to 0
         this._mask = new boolean[sudokuSize]; // By default initialized to false
@@ -56,7 +56,7 @@ public class PlayerMemory
 
     public boolean isAccepted(int n) {return _accepted[n];}
 
-    public void accept(int n) {_accepted[n] = true;}
+    public void setAccepted(int n, boolean value) {_accepted[n] = value;}
 
     public boolean isFinished(int n) {return _finished[n];}
 
@@ -106,7 +106,7 @@ public class PlayerMemory
         {
             if (!_mask[i] && _digitVector[i] != 0)
             {
-                _awards[i][_digitVector[i]-1] += amount;
+                _rewards[i][_digitVector[i]-1] += amount;
             }
         }
     }
@@ -153,7 +153,7 @@ public class PlayerMemory
 
     public boolean getMask(int n) {return _mask[n];}
 
-    public float getAward(int n, int digit) {return _awards[n][digit-1];}
+    public float getAward(int n, int digit) {return _rewards[n][digit-1];}
 
     public boolean getCollision(int n, int digit) {return _collisions[n][digit-1];}
 
@@ -181,7 +181,7 @@ public class PlayerMemory
             final WeightValuePair[] digitWeightPair = new WeightValuePair[sudokuSize];
             for (int j = 0; j < sudokuSize; ++j)
             {
-                digitWeightPair[j]._weight = _awards[i][j];
+                digitWeightPair[j]._weight = _rewards[i][j];
                 digitWeightPair[j]._value = j+1;
             }
             // Sort from highest to lowest
@@ -199,7 +199,7 @@ public class PlayerMemory
             indexWeightPair[i]._weight = 0;
             for (int j = 0; j < sudokuSize; ++j)
             {
-                indexWeightPair[i]._weight += _awards[i][j];
+                indexWeightPair[i]._weight += _rewards[i][j];
             }
         }
         // Sort tables from lowest to highest

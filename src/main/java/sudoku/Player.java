@@ -8,7 +8,6 @@ import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 
-import javax.swing.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -165,7 +164,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		}
 	}
 
-	/** Custom exception thrown when a Table finishes negotiations with a digit different from what was offered. */
+	/** Custom exception thrown when Table finishes negotiations with a digit different from what was offered. */
 	public static class BadFinishException extends RuntimeException
 	{
 		final int _finishTableId;
@@ -182,7 +181,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		}
 	}
 
-	/** Custom exception thrown when a Player receives NegotiationsFinishedMsg with the same digit from more than one Table. */
+	/** Custom exception thrown when Player receives NegotiationsFinishedMsg with the same digit from more than one Table. */
 	public static class DoubleFinishException extends RuntimeException
 	{
 		final int _finishTableId;
@@ -194,6 +193,23 @@ public class Player extends AbstractBehavior<Player.Protocol>
 			this._finishTableId = finishTableId;
 			this._crashingPlayerId = crashingPlayerId;
 			this._resultingDigit = resultingDigit;
+		}
+	}
+
+	/** Custom exception thrown when a Player receives RejectOfferMsg with a different digit it offered. */
+	public static class BadRejectionException extends RuntimeException
+	{
+		final int _rejectingTableId;
+		final int _crashingPlayerId;
+		final int _rejectedDigit;
+		final int _playerDigit;
+		public BadRejectionException(String msg, int rejectingTableId, int crashingPlayerId, int rejectedDigit, int playerDigit)
+		{
+			super(msg);
+			this._rejectingTableId = rejectingTableId;
+			this._crashingPlayerId = crashingPlayerId;
+			this._rejectedDigit = rejectedDigit;
+			this._playerDigit = playerDigit;
 		}
 	}
 
@@ -332,6 +348,38 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	}
 
 	/**
+	 * Send offer message to a Table.
+	 * Method tries to choose the best offer possible (with the highest weight) for this specific Table.
+	 * @param tableIndex	internal index of Table, to which the message is going to be sent
+	 */
+	private void sendBestOffer(int tableIndex)
+	{
+		final int sudokuSize = _memory.getSudokuSize();
+		boolean offerSent = false;
+		for (int p = 0; p < sudokuSize; ++p)
+		{
+			final int digit = _memory.getDigitPriority(tableIndex, p);
+			if (!_memory.getCollision(tableIndex, digit)) // If the digit doesn't collide
+			{
+				_memory.setDigit(tableIndex, digit);
+				final ActorRef<Table.Protocol> tempTableRef = _tables.getAgent(tableIndex);
+				tempTableRef.tell(new Table.OfferMsg(digit,
+						_memory.getAward(tableIndex, digit),
+						getContext().getSelf(), _playerId));
+				offerSent = true;
+				break; // Do not send any more offers to this Table
+			}
+		}
+		if (!offerSent) // Couldn't offer any digit
+		{
+			_memory.setDigit(tableIndex, 0);
+			final ActorRef<Table.Protocol> tempTableRef = _tables.getAgent(tableIndex);
+			// Send offer with a special value (zero)
+			tempTableRef.tell(new Table.OfferMsg(0, 0L, getContext().getSelf(), _playerId));
+		}
+	}
+
+	/**
 	 * Player is informed that theirs offer is rejected.
 	 * Replies the Table with OfferMsg.
 	 * @param msg	rejecting message
@@ -339,8 +387,6 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	 */
 	private Behavior<Protocol> onRejectOffer(RejectOfferMsg msg) // cancel
 	{
-		// TODO backend
-
 		/* 	Jak w dokumentacji. Powinien sobie zapisać że liczba jest konfliktowa i odesłać stosowne OfferMsg.
 			Nie pamiętam tylko co odsyła gdy jest konflikt. Ale wydaje mi się że OfferMsg ze specjalną wagą może być?
 
@@ -348,7 +394,20 @@ public class Player extends AbstractBehavior<Player.Protocol>
 			(AssessNegotiationsResultsMsg). W takim wypadku powinien cofnąć blokadę tworzoną w czasie
 			onNegotiationsPositive.
 		 */
-		msg._replyTo.tell(new Table.OfferMsg(0, 0, getContext().getSelf(), _playerId));
+
+		final int tableIndex = _tables.getIndex(msg._tableId);
+		final int rejectedDigit = msg._rejectedDigit;
+		{
+			final int myDigit = _memory.getDigit(tableIndex);
+			if (rejectedDigit != myDigit)
+			{
+				throw new BadRejectionException("Table rejected different digit than Player offered.",
+						msg._tableId, _playerId, rejectedDigit, myDigit);
+			}
+		}
+		_memory.setAccepted(tableIndex, false);
+		_memory.setCollision(tableIndex, rejectedDigit);
+		sendBestOffer(tableIndex);
 
 		return this;
 	}
@@ -368,18 +427,18 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		 */
 
 		final int approvedDigit = msg._approvedDigit;
-		final int index = _tables.getIndex(msg._tableId);
-		final ActorRef<Table.Protocol> tableRef = _tables.getAgent(index);
+		final int tableIndex = _tables.getIndex(msg._tableId);
+		final ActorRef<Table.Protocol> tableRef = _tables.getAgent(tableIndex);
 		// Check if the digit was already accepted on a different Table
 		if (_memory.alreadyAccepted(approvedDigit))
 		{
-			_memory.setCollision(index, approvedDigit);
+			_memory.setCollision(tableIndex, approvedDigit);
 			tableRef.tell(new Table.WithdrawOfferMsg(approvedDigit, getContext().getSelf(), _playerId));
 		}
 		else
 		{
-			_memory.setDigit(index, approvedDigit);
-			_memory.accept(index);
+			_memory.setDigit(tableIndex, approvedDigit);
+			_memory.setAccepted(tableIndex, true);
 			tableRef.tell(new Table.AssessNegotiationsResultsMsg(approvedDigit, getContext().getSelf(), _playerId));
 		}
 
@@ -454,31 +513,12 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	{
 		_memory.prioritizeTables();
 		final int sudokuSize = _memory.getSudokuSize();
-		for (int i = 0; i < sudokuSize; ++i)
+		for (int i = 0; i < sudokuSize; ++i) // For each Table
 		{
 			final int tableIndex = _memory.getTablePriority(i);
 			if (!_memory.getMask(tableIndex)) // If the field is not hard-coded
 			{
-				boolean offerSent = false;
-				for (int p = 0; p < sudokuSize; ++p)
-				{
-					final int digit = _memory.getDigitPriority(tableIndex, p);
-					if (!_memory.getCollision(tableIndex, digit)) // If the digit doesn't collide
-					{
-						final ActorRef<Table.Protocol> tempTableRef = _tables.getAgent(tableIndex);
-						tempTableRef.tell(new Table.OfferMsg(digit,
-								_memory.getAward(tableIndex, digit),
-								getContext().getSelf(), _playerId));
-						offerSent = true;
-						break; // Do not send any more offers to this Table
-					}
-				}
-				if (!offerSent) // Couldn't offer any digit
-				{
-					final ActorRef<Table.Protocol> tempTableRef = _tables.getAgent(tableIndex);
-					// Send offer with a special value (zero)
-					tempTableRef.tell(new Table.OfferMsg(0, 0L, getContext().getSelf(), _playerId));
-				}
+				sendBestOffer(tableIndex);
 			}
 		}
 

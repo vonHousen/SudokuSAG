@@ -165,6 +165,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		spawnPlayers();
 		spawnTables();
 		registerAgentsOnSetup();
+		prepareForNewIterationAndRun();
 	}
 
 	/**
@@ -248,7 +249,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	 */
 	private Behavior<Protocol> onTablePerformedMemoryReset(TablePerformedMemoryResetMsg msg)
 	{
-		// TODO
+		// TODO Emil - zliczanie resetow - patrz prepareForNewIterationAndRun
 
 		return this;
 	}
@@ -260,7 +261,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	 */
 	private Behavior<Protocol> onPlayerPerformedMemoryReset(PlayerPerformedMemoryResetMsg msg)
 	{
-		// TODO
+		// TODO Emil - zliczanie resetow - patrz prepareForNewIterationAndRun
 
 		return this;
 	}
@@ -295,7 +296,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		for (int playerId = 0; playerId < _sudoku.getPlayerCount(); ++playerId)
 		{
 			ActorRef<Player.Protocol> newPlayer = getContext().spawn(
-					//Behaviors.supervise(		TODO decide if supervise children
+					//Behaviors.supervise(		TODO Kamil - decide if supervise children
 					Player.create(new Player.CreateMsg(playerId, sudokuSize)
 					)
 					//).onFailure(SupervisorStrategy.restart())
@@ -315,7 +316,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 			for(x = 0; x < sudokuSize; ++x, ++tableId)
 			{
 				ActorRef<Table.Protocol> newTable = getContext().spawn(
-						//Behaviors.supervise(		TODO decide if supervise children
+						//Behaviors.supervise(		TODO Kamil - decide if supervise children
 						Table.create(new Table.CreateMsg(tableId, new Position(x, y), sudokuSize))
 						//).onFailure(SupervisorStrategy.restart())
 						, "table-" + tableId
@@ -461,5 +462,30 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		}
 		results.setBoard(inspectionResults);
 		return results;
+	}
+
+	/**
+	 *  Teacher commands it's agents (by sending ResetMemoryMsg) in appropriate order to reset their's memory.
+	 *  It should collect all messages in onTablePerformedMemoryReset and onPlayerPerformedMemoryReset,
+	 *  and call startNewIteration method on collecting the last one.
+	 */
+	private void prepareForNewIterationAndRun()
+	{
+		for(ActorRef<Table.Protocol> table : _tables.values())
+			table.tell(new Table.ResetMemoryMsg(getContext().getSelf()));
+
+		for(ActorRef<Player.Protocol> player : _players.values())
+			player.tell(new Player.ResetMemoryMsg(getContext().getSelf()));
+	}
+
+	/**
+	 *  The Teacher starts new iteration of solving the sudoku.
+	 *  Method is called when all Teacher's agents are ready for new iteration.
+	 *  Initialisation is done by sending ConsentToStartIterationMsg to all Players.
+	 */
+	private void startNewIteration()
+	{
+		for(ActorRef<Player.Protocol> player : _players.values())
+			player.tell(new Player.ConsentToStartIterationMsg());
 	}
 }

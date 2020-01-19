@@ -283,6 +283,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	/**
 	 * Teacher collects messages reporting negotiations' solutions.
 	 * When collected last message - it should call prepareForNewIterationAndRun and returnNewSolution.
+	 * Note that a solution may be zero - meaning no consensus could be made with the Players.
 	 * @param msg	message containing solution - a digit for a specific Position in Sudoku riddle
 	 * @return 		wrapped Behavior
 	 */

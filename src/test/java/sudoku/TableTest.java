@@ -190,11 +190,12 @@ public class TableTest
 				(Player.NegotiationsFinishedMsg) playerDummy_2.receiveMessage();
 		Player.NegotiationsFinishedMsg responseFinish_3 =
 				(Player.NegotiationsFinishedMsg) playerDummy_3.receiveMessage();
+		Teacher.TableFinishedNegotiationsMsg responseFinish_4 =
+				(Teacher.TableFinishedNegotiationsMsg) teacherDummy.receiveMessage();
 		assertEquals(3, responseFinish_1._resultingDigit);
 		assertEquals(3, responseFinish_2._resultingDigit);
 		assertEquals(3, responseFinish_3._resultingDigit);
-
-		// TODO report to the Teacher
+		assertEquals(3, responseFinish_4._digit);
 	}
 
 	@Test
@@ -270,10 +271,11 @@ public class TableTest
 		Player.NegotiationsFinishedMsg response_1 = (Player.NegotiationsFinishedMsg) playerDummy_1.receiveMessage();
 		Player.NegotiationsFinishedMsg response_2 = (Player.NegotiationsFinishedMsg) playerDummy_2.receiveMessage();
 		Player.NegotiationsFinishedMsg response_3 = (Player.NegotiationsFinishedMsg) playerDummy_3.receiveMessage();
+		Teacher.TableFinishedNegotiationsMsg response_4 =
+				(Teacher.TableFinishedNegotiationsMsg) teacherDummy.receiveMessage();
 		assertEquals(0, response_1._resultingDigit);
 		assertEquals(0, response_2._resultingDigit);
 		assertEquals(0, response_3._resultingDigit);
-
-		// TODO report to the Teacher.
+		assertEquals(0, response_4._digit);
 	}
 }

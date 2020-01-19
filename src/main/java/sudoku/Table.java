@@ -263,14 +263,17 @@ public class Table extends AbstractBehavior<Table.Protocol>
 
 	/**
 	 * Ends negotiations irrevocably.
+	 * Sends TableFinishedNegotiationsMsg to the Teacher reporting finish of the negotiations.
 	 */
 	private void quitNegotiations()
 	{
+		int digitSolution = _memory.getBestOffer();
 		for (int i = 0; i < 3; ++i)
 		{
 			_players.getAgent(i).tell(new Player.NegotiationsFinishedMsg(
-					_memory.getBestOffer(), getContext().getSelf(), _tableId));
+					digitSolution, getContext().getSelf(), _tableId));
 		}
+		_parent.tell(new Teacher.TableFinishedNegotiationsMsg(digitSolution, _tableId));
 	}
 
 	/**

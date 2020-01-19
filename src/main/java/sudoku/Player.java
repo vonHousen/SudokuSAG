@@ -458,8 +458,6 @@ public class Player extends AbstractBehavior<Player.Protocol>
 					throw new Player.DoubleFinishException("Digit was already inserted somewhere else.",
 							msg._tableId, _playerId, myDigit);
 				}
-				final ActorRef<Table.Protocol> tempTableRef = _tables.getAgent(n);
-				tempTableRef.tell(new Table.WithdrawOfferMsg(myDigit, getContext().getSelf(), _playerId));
 			}
 		}
 		else

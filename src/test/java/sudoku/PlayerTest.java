@@ -175,7 +175,7 @@ public class PlayerTest
 	}
 
 	@Test
-	public void testBadNegotiations()
+	public void testUnsuccessfulNegotiations()
 	{
 		// Prepare dummy Tables and dummy Teacher
 		TestProbe<Teacher.Protocol> teacherDummy = testKit.createTestProbe();

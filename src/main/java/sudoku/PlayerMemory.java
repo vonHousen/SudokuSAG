@@ -74,7 +74,7 @@ public class PlayerMemory
         for (int i = 0; i < _digitVector.length; ++i)
         {
             // If the digit was offered on another Table
-            if (_digitVector[i] == resultingDigit)
+            if (_digitVector[i] == resultingDigit && i != n)
             {
                 tableIndices.add(i);
                 _digitVector[i] = 0;

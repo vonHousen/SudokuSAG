@@ -162,7 +162,7 @@ public class TableTest
 		assertTrue(Arrays.equals(response7._otherDigits, new int[]{7}));
 
 
-		// Send to the Table more info about replaced offer
+		// Send to the Table more info about replaced offer & expect new negotiations positive results
 		theTable.tell(new Table.AdditionalInfoMsg(
 				new int[]{7}, new float[]{1L}, new boolean[]{false, false}, playerDummy_1.getRef(), 0));
 		playerDummy_1.expectNoMessage();
@@ -176,5 +176,20 @@ public class TableTest
 		assertEquals(3, responseOK4._approvedDigit);
 		assertEquals(3, responseOK5._approvedDigit);
 		assertEquals(3, responseOK6._approvedDigit);
+
+
+		// Agree to latest negotiations results
+		theTable.tell(new Table.AcceptNegotiationsResultsMsg(3, playerDummy_1.getRef(), 0));
+		theTable.tell(new Table.AcceptNegotiationsResultsMsg(3, playerDummy_2.getRef(), 9));
+		theTable.tell(new Table.AcceptNegotiationsResultsMsg(3, playerDummy_3.getRef(), 18));
+		Player.NegotiationsFinishedMsg responseFinish_1 =
+				(Player.NegotiationsFinishedMsg) playerDummy_1.receiveMessage();
+		Player.NegotiationsFinishedMsg responseFinish_2 =
+				(Player.NegotiationsFinishedMsg) playerDummy_2.receiveMessage();
+		Player.NegotiationsFinishedMsg responseFinish_3 =
+				(Player.NegotiationsFinishedMsg) playerDummy_3.receiveMessage();
+		assertEquals(3, responseFinish_1._resultingDigit);
+		assertEquals(3, responseFinish_2._resultingDigit);
+		assertEquals(3, responseFinish_3._resultingDigit);
 	}
 }

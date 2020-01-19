@@ -165,5 +165,12 @@ public class PlayerTest
 		Table.AcceptNegotiationsResultsMsg responseAccept_3 =
 				(Table.AcceptNegotiationsResultsMsg) tableDummy.receiveMessage();
 		assertEquals(6, responseAccept_3._acceptedDigit);
+
+
+		// Test finishing the negotiations
+		thePlayer.tell(new Player.NegotiationsFinishedMsg(6, tableDummy.getRef(), 0));
+		tableDummy.expectNoMessage();
+		for(TestProbe<Table.Protocol> tableOtherDummy : tableOtherDummies)
+			tableOtherDummy.expectNoMessage();
 	}
 }

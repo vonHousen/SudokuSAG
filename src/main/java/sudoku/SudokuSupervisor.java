@@ -93,7 +93,6 @@ public class SudokuSupervisor extends AbstractBehavior<SudokuSupervisor.Protocol
 				).onFailure(SupervisorStrategy.restart())
 				, "teacher"
 		);
-		// getContext().watchWith(_teacher, new TerminateMsg(1L, getContext().getSelf())); TODO
 	}
 
 	/**

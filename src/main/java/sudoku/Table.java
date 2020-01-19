@@ -108,15 +108,15 @@ public class Table extends AbstractBehavior<Table.Protocol>
 		}
 	}
 
-	/** Message telling if the Player accepted negotiations results or not. */
-	public static class AssessNegotiationsResultsMsg extends NegotiationsMsg
+	/** Message telling that the Player accepted negotiations results. */
+	public static class AcceptNegotiationsResultsMsg extends NegotiationsMsg
 	{
-		public final int _assessedDigit;
+		public final int _acceptedDigit;
 
-		public AssessNegotiationsResultsMsg(int assessedDigit, ActorRef<Player.Protocol> replyTo, int playerId)
+		public AcceptNegotiationsResultsMsg(int acceptedDigit, ActorRef<Player.Protocol> replyTo, int playerId)
 		{
 			super(replyTo, playerId);
-			this._assessedDigit = assessedDigit;
+			this._acceptedDigit = acceptedDigit;
 		}
 	}
 
@@ -186,7 +186,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 				.onMessage(OfferMsg.class, this::onOffer)
 				.onMessage(AdditionalInfoMsg.class, this::onAdditionalInfo)
 				.onMessage(WithdrawOfferMsg.class, this::onWithdrawOffer)
-				.onMessage(AssessNegotiationsResultsMsg.class, this::onAssessNegotiationsResults)
+				.onMessage(AcceptNegotiationsResultsMsg.class, this::onAcceptNegotiationsResults)
 				.onMessage(ResetMemoryMsg.class, this::onResetMemory)
 				.build();
 	}
@@ -292,11 +292,6 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	 */
 	private Behavior<Protocol> onOffer(OfferMsg msg) // offer
 	{
-		/* 	Stolik powinien zebrać oferty (potem ogarniemy timeout) - powinien je liczyć. Jak dostanie wszystkie, to
-			powinien rozesłać AdditionalInfoRequestMsg. Pamiętaj, że stolik nie może czekać aktywnie. Pamiętaj że może
-			dostać tę wiadomość jako update starej oferty.
-		 */
-
 		final int index = _players.getIndex(msg._playerId);
 		final ActorRef<Player.Protocol> player = _players.getAgent(index);
 		final int digit = msg._offeredDigit;
@@ -333,11 +328,6 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	 */
 	private Behavior<Protocol> onAdditionalInfo(AdditionalInfoMsg msg) // specified
 	{
-		/* 	Stolik powinien zebrać wagi i ogarnąć co robić dalej. Jak dostanie info o konflikcie to wydaje mi się że
-			nie powinien nawet czekać na resztę opinii tylko wysłać komu trzeba wiadomość o wycofaniu oferty
-			(RejectOfferMsg) i poprosić spóźnialskich o nowe opinie.
-		 */
-
 		final int index = _players.getIndex(msg._playerId);
 
 		for (int i = 0; i < msg._digits.length; ++i)
@@ -367,28 +357,22 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	 */
 	private Behavior<Protocol> onWithdrawOffer(WithdrawOfferMsg msg) // deny
 	{
-		/* 	Stolik powinien poprawić swoje dane i czekać (ale nie aktywnie!) na kolejny OfferMsg. Nie przewiduję tu
-			odpowiadania komukolwiek, bo po co?
-
-			Łatwiej jest uzyskać stabilny protokół komunikacyjny wysyłając wiadomość powrotną do zgłaszającego.
-		 */
-
 		withdrawAndInform(msg._withdrawnDigit);
 
 		return this;
 	}
 
 	/**
-	 * Table collects (optimistically) all accepting messages and finishes negotiations.
+	 * Table collects accepting messages and finishes negotiations.
 	 * Table may also get declining message, what results in continuing the negotiations.
-	 * To prevent synchronization issues Table must check if msg._assessedDigit is up to date with Table's one.
+	 * To prevent synchronization issues Table must check if msg._acceptedDigit is up to date with Table's one.
 	 * May reply to all Players with RejectOfferMsg or NegotiationsFinishedMsg.
 	 * @param msg	message with Player's acceptance / decline of present negotiations results.
 	 * @return		wrapped Behavior
 	 */
-	private Behavior<Protocol> onAssessNegotiationsResults(AssessNegotiationsResultsMsg msg) // accept
+	private Behavior<Protocol> onAcceptNegotiationsResults(AcceptNegotiationsResultsMsg msg) // accept
 	{
-		if (msg._assessedDigit == _memory.getBestOffer())
+		if (msg._acceptedDigit == _memory.getBestOffer())
 		{
 			_memory.incrementAcceptanceCount();
 			if (_memory.allAcceptances())

@@ -387,14 +387,6 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	 */
 	private Behavior<Protocol> onRejectOffer(RejectOfferMsg msg) // cancel
 	{
-		/* 	Jak w dokumentacji. Powinien sobie zapisać że liczba jest konfliktowa i odesłać stosowne OfferMsg.
-			Nie pamiętam tylko co odsyła gdy jest konflikt. Ale wydaje mi się że OfferMsg ze specjalną wagą może być?
-
-			UWAGA: może dostać tą wiadomość także w sytuacji, gdy Gracz już zaakceptował jakąś ofertę
-			(AssessNegotiationsResultsMsg). W takim wypadku powinien cofnąć blokadę tworzoną w czasie
-			onNegotiationsPositive.
-		 */
-
 		final int tableIndex = _tables.getIndex(msg._tableId);
 		final int rejectedDigit = msg._rejectedDigit;
 		{
@@ -414,18 +406,12 @@ public class Player extends AbstractBehavior<Player.Protocol>
 
 	/**
 	 * Action taken when Player is informed of positive result of the negotiations.
-	 * Replies the Table with AssessNegotiationsResultsMsg.
+	 * Replies the Table with AcceptNegotiationsResultsMsg.
 	 * @param msg	positive result of negotiations in a message
 	 * @return 		wrapped Behavior
 	 */
 	private Behavior<Protocol> onNegotiationsPositive(NegotiationsPositiveMsg msg) // winner
 	{
-		/* 	Wystarczy, że Gracz sobie sprawdzi czy dalej mu pasuje, i jeśli odsyła AssessNegotiationsResultsMsg,
-			w którym zawiera czy akceptuje negocjacje czy nie. Pamiętaj, że jak akceptuje, to w TEJ funkcji natychmiast
-			blokuje sobie tę cyfrę. Jak nie, to przesyła stosowne info w wiadomości powrotnej.
-			W wiadomości przekazywana jest również cyfra na jaką się zgadza / nie zgadza - patrz funkcja u stolika.
-		 */
-
 		final int approvedDigit = msg._approvedDigit;
 		final int tableIndex = _tables.getIndex(msg._tableId);
 		final ActorRef<Table.Protocol> tableRef = _tables.getAgent(tableIndex);
@@ -439,7 +425,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		{
 			_memory.setDigit(tableIndex, approvedDigit);
 			_memory.setAccepted(tableIndex, true);
-			tableRef.tell(new Table.AssessNegotiationsResultsMsg(approvedDigit, getContext().getSelf(), _playerId));
+			tableRef.tell(new Table.AcceptNegotiationsResultsMsg(approvedDigit, getContext().getSelf(), _playerId));
 		}
 
 		return this;
@@ -453,12 +439,6 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	 */
 	private Behavior<Protocol> onNegotiationsFinished(NegotiationsFinishedMsg msg) // inserted
 	{
-		/* 	Generalnie to Gracz przyklepuje sobie blokadę cyfry - tzn że jest ona ostateczna i wpisana.
-
-			UWAGA: dopiero teraz gracz przesyła do pozostałych stolików (jeśli trzeba oczywiście) wiadomość WithdrawOfferMsg.
-			Chyba.:P
-		 */
-
 		final int index = _tables.getIndex(msg._tableId);
 		final int resultingDigit = msg._resultingDigit;
 		if (resultingDigit != 0) // Finished with non-empty field

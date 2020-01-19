@@ -128,5 +128,7 @@ public class TableTest
 		assertEquals(2, responseOK1._approvedDigit);
 		assertEquals(2, responseOK2._approvedDigit);
 		assertEquals(2, responseOK3._approvedDigit);
+
+		//
 	}
 }

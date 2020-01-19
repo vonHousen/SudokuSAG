@@ -97,7 +97,7 @@ public class TableTest
 		playerDummy_3.expectNoMessage();
 		theTable.tell(new Table.AdditionalInfoMsg(
 				new int[]{1, 3}, new float[]{100L, 2L}, new boolean[]{true, false}, playerDummy_2.getRef(), 9));
-		Player.RejectOfferMsg responseReject = (Player.RejectOfferMsg) playerDummy_1.receiveMessage();
+		playerDummy_1.expectMessageClass(Player.RejectOfferMsg.class);
 		playerDummy_2.expectNoMessage();
 		playerDummy_3.expectNoMessage();
 		theTable.tell(new Table.AdditionalInfoMsg(

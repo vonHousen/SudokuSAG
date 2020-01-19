@@ -140,5 +140,25 @@ public class PlayerTest
 		tableOtherDummies.get(0).expectNoMessage();
 		for(TestProbe<Table.Protocol> tableOtherDummy : tableOtherDummies.subList(1, tableOtherDummies.size()))
 			tableOtherDummy.expectNoMessage();
+
+		// Send to a Player possible positive negotiations results with double plot twists from other tables
+		thePlayer.tell(new Player.NegotiationsPositiveMsg(1, tableOtherDummies.get(1).getRef(), 18));
+		Table.AcceptNegotiationsResultsMsg responseAccept_1 =
+				(Table.AcceptNegotiationsResultsMsg) tableOtherDummies.get(1).receiveMessage();
+		assertEquals(1, responseAccept_1._acceptedDigit);
+		thePlayer.tell(new Player.NegotiationsPositiveMsg(1, tableOtherDummies.get(2).getRef(), 27));
+		Table.WithdrawOfferMsg responseDecline =
+				(Table.WithdrawOfferMsg) tableOtherDummies.get(2).receiveMessage();
+		assertEquals(1, responseDecline._withdrawnDigit);
+		thePlayer.tell(new Player.RejectOfferMsg(1, tableOtherDummies.get(1).getRef(), 18));
+		tableOtherDummies.get(1).expectMessageClass(Table.OfferMsg.class);
+		thePlayer.tell(new Player.NegotiationsPositiveMsg(1, tableOtherDummies.get(3).getRef(), 36));
+		Table.AcceptNegotiationsResultsMsg responseAccept_2 =
+				(Table.AcceptNegotiationsResultsMsg) tableOtherDummies.get(3).receiveMessage();
+		assertEquals(1, responseAccept_2._acceptedDigit);
+		thePlayer.tell(new Player.NegotiationsPositiveMsg(6, tableDummy.getRef(), 0));
+		Table.AcceptNegotiationsResultsMsg responseAccept_3 =
+				(Table.AcceptNegotiationsResultsMsg) tableDummy.receiveMessage();
+		assertEquals(6, responseAccept_3._acceptedDigit);
 	}
 }

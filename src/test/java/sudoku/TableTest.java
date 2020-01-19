@@ -54,9 +54,11 @@ public class TableTest
 		TestProbe<Player.Protocol> playerDummy_2 = testKit.createTestProbe();
 		TestProbe<Player.Protocol> playerDummy_3 = testKit.createTestProbe();
 
+
 		// Create new Table to test
 		ActorRef<Table.Protocol> theTable = testKit.spawn(
 				Table.create(new Table.CreateMsg(0, new Position(0,0), 9)),"theTable1");
+
 
 		// Register dummy Players
 		theTable.tell(new Table.RegisterPlayerMsg(playerDummy_1.getRef(), 0, teacherDummy.getRef()));
@@ -66,11 +68,13 @@ public class TableTest
 		theTable.tell(new Table.RegisterPlayerMsg(playerDummy_3.getRef(), 18, teacherDummy.getRef()));
 		teacherDummy.receiveMessage();
 
+
 		// Start "new iteration"
 		theTable.tell(new Table.ResetMemoryMsg(teacherDummy.getRef()));
 		Teacher.TablePerformedMemoryResetMsg response0 =
 				(Teacher.TablePerformedMemoryResetMsg) teacherDummy.receiveMessage();
 		assertEquals(0, response0._id);
+
 
 		// Check Table's response for Player's offers
 		theTable.tell(new Table.OfferMsg(1, 1L, playerDummy_1.getRef(), 0));
@@ -89,6 +93,7 @@ public class TableTest
 		assertTrue(Arrays.equals(response2._otherDigits, new int[]{1, 3}));
 		assertTrue(Arrays.equals(response3._otherDigits, new int[]{1, 2}));
 
+
 		// Send to the Table more info about other offers
 		theTable.tell(new Table.AdditionalInfoMsg(
 				new int[]{2, 3}, new float[]{5L, 3L}, new boolean[]{false, false}, playerDummy_1.getRef(), 0));
@@ -106,6 +111,7 @@ public class TableTest
 		playerDummy_2.expectNoMessage();
 		playerDummy_3.expectNoMessage();
 
+
 		// Simulate replacing conflicting digit
 		theTable.tell(new Table.OfferMsg(8, 3L, playerDummy_1.getRef(), 0));
 		playerDummy_1.expectNoMessage();
@@ -113,6 +119,7 @@ public class TableTest
 		Player.AdditionalInfoRequestMsg response5 = (Player.AdditionalInfoRequestMsg) playerDummy_3.receiveMessage();
 		assertTrue(Arrays.equals(response4._otherDigits, new int[]{8}));
 		assertTrue(Arrays.equals(response5._otherDigits, new int[]{8}));
+
 
 		// Send to the Table more info about replaced offer
 		theTable.tell(new Table.AdditionalInfoMsg(
@@ -129,6 +136,7 @@ public class TableTest
 		assertEquals(2, responseOK2._approvedDigit);
 		assertEquals(2, responseOK3._approvedDigit);
 
+
 		// Send some acceptations to the Table but with plot twist
 		theTable.tell(new Table.AcceptNegotiationsResultsMsg(2, playerDummy_1.getRef(), 0));
 		playerDummy_1.expectNoMessage();
@@ -144,6 +152,7 @@ public class TableTest
 		playerDummy_2.expectNoMessage();
 		playerDummy_3.expectNoMessage();
 
+
 		// Respond with another digit
 		theTable.tell(new Table.OfferMsg(7, 1L, playerDummy_2.getRef(), 9));
 		Player.AdditionalInfoRequestMsg response6 = (Player.AdditionalInfoRequestMsg) playerDummy_1.receiveMessage();
@@ -151,6 +160,7 @@ public class TableTest
 		Player.AdditionalInfoRequestMsg response7 = (Player.AdditionalInfoRequestMsg) playerDummy_3.receiveMessage();
 		assertTrue(Arrays.equals(response6._otherDigits, new int[]{7}));
 		assertTrue(Arrays.equals(response7._otherDigits, new int[]{7}));
+
 
 		// Send to the Table more info about replaced offer
 		theTable.tell(new Table.AdditionalInfoMsg(

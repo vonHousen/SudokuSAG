@@ -82,9 +82,11 @@ public class PlayerTest
 		for(int i = 0; i < 8; i++)
 			tableOtherDummies.add(testKit.createTestProbe());
 
+
 		// Create Player to test
 		ActorRef<Player.Protocol> thePlayer = testKit.spawn(
 				Player.create(new Player.CreateMsg(0, 9)), "theTable1");
+
 
 		// Register dummy Tables to the Player
 		thePlayer.tell(new Player.RegisterTableMsg(
@@ -99,6 +101,7 @@ public class PlayerTest
 					tableOtherDummies.get(i).getRef(), j, 0, false, teacherDummy.getRef()));
 			teacherDummy.receiveMessage();
 		}
+
 
 		// Start "new iteration"
 		thePlayer.tell(new Player.ResetMemoryMsg(teacherDummy.getRef()));
@@ -121,6 +124,7 @@ public class PlayerTest
 			assertEquals(respondedDigit, responseOffer._offeredDigit);
 		}
 
+
 		// Check Player's response for Table's request for additional info
 		thePlayer.tell(new Player.AdditionalInfoRequestMsg(new int[]{5,6}, tableDummy.getRef(), 0));
 		Table.AdditionalInfoMsg response = (Table.AdditionalInfoMsg) tableDummy.receiveMessage();
@@ -140,6 +144,7 @@ public class PlayerTest
 		tableOtherDummies.get(0).expectNoMessage();
 		for(TestProbe<Table.Protocol> tableOtherDummy : tableOtherDummies.subList(1, tableOtherDummies.size()))
 			tableOtherDummy.expectNoMessage();
+
 
 		// Send to a Player possible positive negotiations results with double plot twists from other tables
 		thePlayer.tell(new Player.NegotiationsPositiveMsg(1, tableOtherDummies.get(1).getRef(), 18));

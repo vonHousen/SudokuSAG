@@ -100,6 +100,34 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		}
 	}
 
+	/** The agent reports to the Teacher that it had performed reset of it's memory. */
+	public static class PerformedMemoryResetMsg implements Protocol, SharedProtocols.NewIterationProtocol
+	{
+		public final int _id;
+		public PerformedMemoryResetMsg(int id)
+		{
+			this._id = id;
+		}
+	}
+
+	/** The Table's version of PerformedMemoryResetMsg. */
+	public static class TablePerformedMemoryResetMsg extends PerformedMemoryResetMsg
+	{
+		public TablePerformedMemoryResetMsg(int id)
+		{
+			super(id);
+		}
+	}
+
+	/** The Player's version of PerformedMemoryResetMsg. */
+	public static class PlayerPerformedMemoryResetMsg extends PerformedMemoryResetMsg
+	{
+		public PlayerPerformedMemoryResetMsg(int id)
+		{
+			super(id);
+		}
+	}
+
 	/** Sudoku riddle to be solved. */
 	private final Sudoku _sudoku;
 	/** Parent agent */
@@ -151,6 +179,8 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 				.onMessage(SimulateCrashMsg.class, this::onSimulateCrash)
 				.onMessage(InspectChildDigitsMsg.class, this::onInspectChildDigits)
 				.onMessage(MemorisedDigitsMsg.class, this::onMemorisedDigits)
+				.onMessage(TablePerformedMemoryResetMsg.class, this::onTablePerformedMemoryReset)
+				.onMessage(PlayerPerformedMemoryResetMsg.class, this::onPlayerPerformedMemoryReset)
 				.onSignal(PreRestart.class, signal -> onPreRestart())
 				.onSignal(PostStop.class, signal -> onPostStop())
 				.build();
@@ -212,6 +242,30 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	}
 
 	/**
+	 * Teacher collects messages reporting it's Tables' memory being reset.
+	 * @param msg	reporting message
+	 * @return 		wrapped Behavior
+	 */
+	private Behavior<Protocol> onTablePerformedMemoryReset(TablePerformedMemoryResetMsg msg)
+	{
+		// TODO
+
+		return this;
+	}
+
+	/**
+	 * Teacher collects messages reporting it's Players' memory being reset.
+	 * @param msg	reporting message
+	 * @return 		wrapped Behavior
+	 */
+	private Behavior<Protocol> onPlayerPerformedMemoryReset(PlayerPerformedMemoryResetMsg msg)
+	{
+		// TODO
+
+		return this;
+	}
+
+	/**
 	 * Handler of PostStop signal.
 	 * Expected after stopping agent.
 	 * @return 		wrapped Behavior
@@ -262,7 +316,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 			{
 				ActorRef<Table.Protocol> newTable = getContext().spawn(
 						//Behaviors.supervise(		TODO decide if supervise children
-						Table.create(new Table.CreateMsg(tableId, new Position(x, y)))
+						Table.create(new Table.CreateMsg(tableId, new Position(x, y), sudokuSize))
 						//).onFailure(SupervisorStrategy.restart())
 						, "table-" + tableId
 				);

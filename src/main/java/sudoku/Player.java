@@ -8,6 +8,7 @@ import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
@@ -135,6 +136,20 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		}
 	}
 
+	/** Message commanding the agent to reset it's memory due to start of new iteration. */
+	public static class ResetMemoryMsg implements Protocol, SharedProtocols.NewIterationProtocol
+	{
+		public final ActorRef<Teacher.Protocol> _replyTo;
+		public ResetMemoryMsg(ActorRef<Teacher.Protocol> replyTo)
+		{
+			this._replyTo = replyTo;
+		}
+	}
+
+	/** Message allowing the agent to start new iteration by sending new offers. */
+	public static class ConsentToStartIterationMsg implements Protocol, SharedProtocols.NewIterationProtocol
+	{}
+
 
 	/** Custom exception thrown when excessive Table is about to be registered to this Player */
 	public static class IncorrectRegisterException extends RuntimeException
@@ -149,10 +164,59 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		}
 	}
 
+	/** Custom exception thrown when Table finishes negotiations with a digit different from what was offered. */
+	public static class BadFinishException extends RuntimeException
+	{
+		final int _finishTableId;
+		final int _crashingPlayerId;
+		final int _playerDigit;
+		final int _tableDigit;
+		public BadFinishException(String msg, int finishTableId, int crashingPlayerId, int playerDigit, int tableDigit)
+		{
+			super(msg);
+			this._finishTableId = finishTableId;
+			this._crashingPlayerId = crashingPlayerId;
+			this._playerDigit = playerDigit;
+			this._tableDigit = tableDigit;
+		}
+	}
+
+	/** Custom exception thrown when Player receives NegotiationsFinishedMsg with the same digit from more than one Table. */
+	public static class DoubleFinishException extends RuntimeException
+	{
+		final int _finishTableId;
+		final int _crashingPlayerId;
+		final int _resultingDigit;
+		public DoubleFinishException(String msg, int finishTableId, int crashingPlayerId, int resultingDigit)
+		{
+			super(msg);
+			this._finishTableId = finishTableId;
+			this._crashingPlayerId = crashingPlayerId;
+			this._resultingDigit = resultingDigit;
+		}
+	}
+
+	/** Custom exception thrown when a Player receives RejectOfferMsg with a different digit it offered. */
+	public static class BadRejectionException extends RuntimeException
+	{
+		final int _rejectingTableId;
+		final int _crashingPlayerId;
+		final int _rejectedDigit;
+		final int _playerDigit;
+		public BadRejectionException(String msg, int rejectingTableId, int crashingPlayerId, int rejectedDigit, int playerDigit)
+		{
+			super(msg);
+			this._rejectingTableId = rejectingTableId;
+			this._crashingPlayerId = crashingPlayerId;
+			this._rejectedDigit = rejectedDigit;
+			this._playerDigit = playerDigit;
+		}
+	}
+
 	/** Global ID of this Player */
 	private final int _playerId;
 	/** Structure containing awards and current digit vector */
-	private final Memory _memory;
+	private final PlayerMemory _memory;
 	/**
 	 * Map from global Table id to internal index and Table reference.
 	 * Data structure for storing Tables - agents registered to this Player.
@@ -174,7 +238,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	{
 		super(context);
 		_playerId = createMsg._playerId;
-		_memory = new Memory(createMsg._sudokuSize);
+		_memory = new PlayerMemory(createMsg._sudokuSize);
 		_tables = new AgentMap<ActorRef<Table.Protocol>>(createMsg._sudokuSize);
 		// context.getLog().info("Player {} created", _tableId);		// left for debugging only
 	}
@@ -194,6 +258,8 @@ public class Player extends AbstractBehavior<Player.Protocol>
 				.onMessage(RejectOfferMsg.class, this::onRejectOffer)
 				.onMessage(NegotiationsPositiveMsg.class, this::onNegotiationsPositive)
 				.onMessage(NegotiationsFinishedMsg.class, this::onNegotiationsFinished)
+				.onMessage(ResetMemoryMsg.class, this::onResetMemory)
+				.onMessage(ConsentToStartIterationMsg.class, this::onConsentToStartIteration)
 				.onSignal(PostStop.class, signal -> onPostStop())
 				.build();
 	}
@@ -262,58 +328,105 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	 * @param msg	request for additional info
 	 * @return 		wrapped Behavior
 	 */
-	private Behavior<Protocol> onAdditionalInfoRequest(AdditionalInfoRequestMsg msg)
+	private Behavior<Protocol> onAdditionalInfoRequest(AdditionalInfoRequestMsg msg) // specify
 	{
-		// TODO backend
-
-		/* 	Jak w dokumentacji, gracz dostaje wiadomość z requestem i odsyła AdditionalInfoMsg. Returna nie ruszaj.
-			Nie pamiętam tylko co odsyła gdy jest konflikt. Miała być osobna wiadomość?
-
-			odpowiadanie wygląda generalnie tak jak poniżej, tylko popraw nego nulla:)
-			Zamiast msg._replyTo możesz też użyć referencji przechowywanej od momentu rejestracji.
-		 */
-		msg._replyTo.tell(new Table.AdditionalInfoMsg(null, getContext().getSelf(), _playerId));
+		final int length = msg._otherDigits.length;
+		float[] weights = new float[length];
+		boolean[] collisions = new boolean[length];
+		final int index = _tables.getIndex(msg._tableId);
+		for (int i = 0; i < length; ++i)
+		{
+			final int digit = msg._otherDigits[i];
+			weights[i] = _memory.getAward(index, digit);
+			collisions[i] = _memory.getCollision(index, digit);
+		}
+		msg._replyTo.tell(
+				new Table.AdditionalInfoMsg(msg._otherDigits, weights, collisions, getContext().getSelf(), _playerId)
+		);
 
 		return this;
 	}
 
 	/**
-	 * Player is informed that it's offer is rejected.
+	 * Send offer message to a Table.
+	 * Method tries to choose the best offer possible (with the highest weight) for this specific Table.
+	 * @param tableIndex	internal index of Table, to which the message is going to be sent
+	 */
+	private void sendBestOffer(int tableIndex)
+	{
+		final int sudokuSize = _memory.getSudokuSize();
+		boolean offerSent = false;
+		for (int p = 0; p < sudokuSize; ++p)
+		{
+			final int digit = _memory.getDigitPriority(tableIndex, p);
+			if (!_memory.getCollision(tableIndex, digit)) // If the digit doesn't collide
+			{
+				_memory.setDigit(tableIndex, digit);
+				final ActorRef<Table.Protocol> tempTableRef = _tables.getAgent(tableIndex);
+				tempTableRef.tell(new Table.OfferMsg(digit,
+						_memory.getAward(tableIndex, digit),
+						getContext().getSelf(), _playerId));
+				offerSent = true;
+				break; // Do not send any more offers to this Table
+			}
+		}
+		if (!offerSent) // Couldn't offer any digit
+		{
+			_memory.setDigit(tableIndex, 0);
+			final ActorRef<Table.Protocol> tempTableRef = _tables.getAgent(tableIndex);
+			// Send offer with a special value (zero)
+			tempTableRef.tell(new Table.OfferMsg(0, 0L, getContext().getSelf(), _playerId));
+		}
+	}
+
+	/**
+	 * Player is informed that theirs offer is rejected.
 	 * Replies the Table with OfferMsg.
 	 * @param msg	rejecting message
 	 * @return 		wrapped Behavior
 	 */
-	private Behavior<Protocol> onRejectOffer(RejectOfferMsg msg)
+	private Behavior<Protocol> onRejectOffer(RejectOfferMsg msg) // cancel
 	{
-		// TODO backend
-
-		/* 	Jak w dokumentacji. Powinien sobie zapisać że liczba jest konfliktowa i odesłać stosowne OfferMsg.
-			Nie pamiętam tylko co odsyła gdy jest konflikt. Ale wydaje mi się że OfferMsg ze specjalną wagą może być?
-
-			UWAGA: może dostać tą wiadomość także w sytuacji, gdy Gracz już zaakceptował jakąś ofertę. W takim wypadku
-			powinien cofnąć blokadę tworzoną w czasie onNegotiationsPositive.
-		 */
-		msg._replyTo.tell(new Table.OfferMsg(0, 0, getContext().getSelf(), _playerId));
+		final int tableIndex = _tables.getIndex(msg._tableId);
+		final int rejectedDigit = msg._rejectedDigit;
+		{
+			final int myDigit = _memory.getDigit(tableIndex);
+			if (rejectedDigit != myDigit)
+			{
+				throw new BadRejectionException("Table rejected different digit than Player offered.",
+						msg._tableId, _playerId, rejectedDigit, myDigit);
+			}
+		}
+		_memory.setAccepted(tableIndex, false);
+		_memory.setCollision(tableIndex, rejectedDigit);
+		sendBestOffer(tableIndex);
 
 		return this;
 	}
 
 	/**
 	 * Action taken when Player is informed of positive result of the negotiations.
-	 * Replies the Table with AssessNegotiationsResultsMsg.
+	 * Replies the Table with AcceptNegotiationsResultsMsg.
 	 * @param msg	positive result of negotiations in a message
 	 * @return 		wrapped Behavior
 	 */
-	private Behavior<Protocol> onNegotiationsPositive(NegotiationsPositiveMsg msg)
+	private Behavior<Protocol> onNegotiationsPositive(NegotiationsPositiveMsg msg) // winner
 	{
-		// TODO backend
-
-		/* 	Wystarczy, że Gracz sobie sprawdzi czy dalej mu pasuje, i jeśli odsyła AssessNegotiationsResultsMsg,
-			w którym zawiera czy akceptuje negocjacje czy nie. Pamiętaj, że jak akceptuje, to w TEJ funkcji natychmiast
-			blokuje sobie tę cyfrę. Jak nie, to przesyła stosowne info w wiadomości powrotnej.
-			W wiadomości przekazywana jest również cyfra na jaką się zgadza / nie zgadza - patrz funkcja u stolika.
-		 */
-		msg._replyTo.tell(new Table.AssessNegotiationsResultsMsg(true, 0, getContext().getSelf(), _playerId));
+		final int approvedDigit = msg._approvedDigit;
+		final int tableIndex = _tables.getIndex(msg._tableId);
+		final ActorRef<Table.Protocol> tableRef = _tables.getAgent(tableIndex);
+		// Check if the digit was already accepted on a different Table
+		if (_memory.alreadyAccepted(approvedDigit))
+		{
+			_memory.setCollision(tableIndex, approvedDigit);
+			tableRef.tell(new Table.WithdrawOfferMsg(approvedDigit, getContext().getSelf(), _playerId));
+		}
+		else
+		{
+			_memory.setDigit(tableIndex, approvedDigit);
+			_memory.setAccepted(tableIndex, true);
+			tableRef.tell(new Table.AcceptNegotiationsResultsMsg(approvedDigit, getContext().getSelf(), _playerId));
+		}
 
 		return this;
 	}
@@ -324,18 +437,68 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	 * @param msg	message announcing final finish of the negotiations
 	 * @return 		wrapped Behavior
 	 */
-	private Behavior<Protocol> onNegotiationsFinished(NegotiationsFinishedMsg msg)
+	private Behavior<Protocol> onNegotiationsFinished(NegotiationsFinishedMsg msg) // inserted
 	{
-		// TODO backend
+		final int tableIndex = _tables.getIndex(msg._tableId);
+		final int resultingDigit = msg._resultingDigit;
+		if (resultingDigit != 0) // Finished with non-empty field
+		{
+			final int myDigit = _memory.getDigit(tableIndex);
+			if (myDigit != resultingDigit)
+			{
+				throw new BadFinishException("Player finished negotiations with a different digit than Table.",
+						msg._tableId, _playerId, myDigit, resultingDigit);
+			}
+			final ArrayList<Integer> tableIndices = _memory.finishNegotiations(tableIndex);
+			_memory.setDigitColliding(myDigit);
+			for (Integer n : tableIndices)
+			{
+				if (_memory.isFinished(n)) // Digit was already chosen (permanently) on another Table
+				{
+					throw new Player.DoubleFinishException("Digit was already inserted somewhere else.",
+							msg._tableId, _playerId, myDigit);
+				}
+			}
+		}
+		else
+		{
+			_memory.setDigit(tableIndex, 0);
+			_memory.finish(tableIndex);
+		}
 
-		/* 	Generalnie to Gracz przyklepuje sobie blokadę cyfry - tzn że jest ona ostateczna i wpisana.
+		return this;
+	}
 
-			UWAGA: dopiero teraz gracz przesyła do pozostałych stolików (jeśli trzeba oczywiście) wiadomość WithdrawOfferMsg.
-			Chyba.:P
-		 */
-		ActorRef<Table.Protocol> table = null;
-		table.tell(new Table.WithdrawOfferMsg(0, getContext().getSelf(), _playerId));
+	/**
+	 * Player resets it's memory to get ready for new iteration.
+	 * @param msg	message from the Teacher
+	 * @return		wrapped Behavior
+	 */
+	private Behavior<Protocol> onResetMemory(ResetMemoryMsg msg)
+	{
+		_memory.reset();
+		msg._replyTo.tell(new Teacher.PlayerPerformedMemoryResetMsg(_playerId));
+		return this;
+	}
 
+	/**
+	 * Player receives permission to start new iteration.
+	 * It chooses the best offers it can make and sends them to appropriate tables.
+	 * @param msg	permission from the Teacher
+	 * @return		wrapped Behavior
+	 */
+	private Behavior<Protocol> onConsentToStartIteration(ConsentToStartIterationMsg msg)
+	{
+		_memory.prioritizeTables();
+		final int sudokuSize = _memory.getSudokuSize();
+		for (int i = 0; i < sudokuSize; ++i) // For each Table
+		{
+			final int tableIndex = _memory.getTablePriority(i);
+			if (!_memory.getMask(tableIndex)) // If the field is not hard-coded
+			{
+				sendBestOffer(tableIndex);
+			}
+		}
 
 		return this;
 	}

@@ -11,4 +11,7 @@ public class SharedProtocols
 
 	/** Protocol for inspecting the Player by the Teacher, initiated by Supervisor. */
 	public interface InspectionProtocol {}
+
+	/** Protocol for starting new iteration by the Teacher, affecting both the Player and the Table. */
+	public interface NewIterationProtocol {}
 }

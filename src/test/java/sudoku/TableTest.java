@@ -191,5 +191,86 @@ public class TableTest
 		assertEquals(3, responseFinish_1._resultingDigit);
 		assertEquals(3, responseFinish_2._resultingDigit);
 		assertEquals(3, responseFinish_3._resultingDigit);
+
+		// TODO report to the Teacher
+	}
+
+	@Test
+	public void testBadNegotiations()
+	{
+		// Prepare dummy Players and dummy Teacher
+		TestProbe<Teacher.Protocol> teacherDummy = testKit.createTestProbe();
+		TestProbe<Player.Protocol> playerDummy_1 = testKit.createTestProbe();
+		TestProbe<Player.Protocol> playerDummy_2 = testKit.createTestProbe();
+		TestProbe<Player.Protocol> playerDummy_3 = testKit.createTestProbe();
+
+
+		// Create new Table to test
+		ActorRef<Table.Protocol> theTable = testKit.spawn(
+				Table.create(new Table.CreateMsg(0, new Position(0,0), 9)),"theTable2");
+
+
+		// Register dummy Players
+		theTable.tell(new Table.RegisterPlayerMsg(playerDummy_1.getRef(), 0, teacherDummy.getRef()));
+		teacherDummy.receiveMessage();
+		theTable.tell(new Table.RegisterPlayerMsg(playerDummy_2.getRef(), 9, teacherDummy.getRef()));
+		teacherDummy.receiveMessage();
+		theTable.tell(new Table.RegisterPlayerMsg(playerDummy_3.getRef(), 18, teacherDummy.getRef()));
+		teacherDummy.receiveMessage();
+
+
+		// Start "new iteration"
+		theTable.tell(new Table.ResetMemoryMsg(teacherDummy.getRef()));
+		Teacher.TablePerformedMemoryResetMsg response0 =
+				(Teacher.TablePerformedMemoryResetMsg) teacherDummy.receiveMessage();
+		assertEquals(0, response0._id);
+
+
+		// Check Table's response for Player's offers
+		theTable.tell(new Table.OfferMsg(6, 1L, playerDummy_1.getRef(), 0));
+		playerDummy_1.expectNoMessage();
+		playerDummy_2.expectNoMessage();
+		playerDummy_3.expectNoMessage();
+		theTable.tell(new Table.OfferMsg(5, 2L, playerDummy_2.getRef(), 9));
+		playerDummy_1.expectNoMessage();
+		playerDummy_2.expectNoMessage();
+		playerDummy_3.expectNoMessage();
+		theTable.tell(new Table.OfferMsg(4, 3L, playerDummy_3.getRef(), 18));
+		Player.AdditionalInfoRequestMsg response1 = (Player.AdditionalInfoRequestMsg) playerDummy_1.receiveMessage();
+		Player.AdditionalInfoRequestMsg response2 = (Player.AdditionalInfoRequestMsg) playerDummy_2.receiveMessage();
+		Player.AdditionalInfoRequestMsg response3 = (Player.AdditionalInfoRequestMsg) playerDummy_3.receiveMessage();
+		assertTrue(Arrays.equals(response1._otherDigits, new int[]{4, 5}));
+		assertTrue(Arrays.equals(response2._otherDigits, new int[]{4, 6}));
+		assertTrue(Arrays.equals(response3._otherDigits, new int[]{5, 6}));
+
+
+		// Send to the Table more info about other offers
+		theTable.tell(new Table.AdditionalInfoMsg(
+				new int[]{4, 5}, new float[]{5L, 3L}, new boolean[]{false, false}, playerDummy_1.getRef(), 0));
+		playerDummy_1.expectNoMessage();
+		playerDummy_2.expectNoMessage();
+		playerDummy_3.expectNoMessage();
+		theTable.tell(new Table.AdditionalInfoMsg(
+				new int[]{4, 6}, new float[]{100L, 2L}, new boolean[]{true, false}, playerDummy_2.getRef(), 9));
+		playerDummy_3.expectMessageClass(Player.RejectOfferMsg.class);
+		playerDummy_2.expectNoMessage();
+		playerDummy_1.expectNoMessage();
+		theTable.tell(new Table.AdditionalInfoMsg(
+				new int[]{5, 6}, new float[]{2L, 2L}, new boolean[]{false, false}, playerDummy_3.getRef(), 18));
+		playerDummy_1.expectNoMessage();
+		playerDummy_2.expectNoMessage();
+		playerDummy_3.expectNoMessage();
+
+
+		// playerDummy_1 now is run out off options:
+		theTable.tell(new Table.OfferMsg(0, 0L, playerDummy_3.getRef(), 18));
+		Player.NegotiationsFinishedMsg response_1 = (Player.NegotiationsFinishedMsg) playerDummy_1.receiveMessage();
+		Player.NegotiationsFinishedMsg response_2 = (Player.NegotiationsFinishedMsg) playerDummy_2.receiveMessage();
+		Player.NegotiationsFinishedMsg response_3 = (Player.NegotiationsFinishedMsg) playerDummy_3.receiveMessage();
+		assertEquals(0, response_1._resultingDigit);
+		assertEquals(0, response_2._resultingDigit);
+		assertEquals(0, response_3._resultingDigit);
+
+		// TODO report to the Teacher.
 	}
 }

@@ -173,4 +173,68 @@ public class PlayerTest
 		for(TestProbe<Table.Protocol> tableOtherDummy : tableOtherDummies)
 			tableOtherDummy.expectNoMessage();
 	}
+
+	@Test
+	public void testBadNegotiations()
+	{
+		// Prepare dummy Tables and dummy Teacher
+		TestProbe<Teacher.Protocol> teacherDummy = testKit.createTestProbe();
+		TestProbe<Table.Protocol> tableDummy = testKit.createTestProbe();
+		Vector<TestProbe<Table.Protocol>> tableOtherDummies = new Vector<>();
+		for(int i = 0; i < 8; i++)
+			tableOtherDummies.add(testKit.createTestProbe());
+
+
+		// Create Player to test
+		ActorRef<Player.Protocol> thePlayer = testKit.spawn(
+				Player.create(new Player.CreateMsg(0, 9)), "theTable2");
+
+
+		// Register dummy Tables to the Player
+		thePlayer.tell(new Player.RegisterTableMsg(
+				tableDummy.getRef(), 0, 0, false, teacherDummy.getRef()));
+		teacherDummy.receiveMessage();
+		thePlayer.tell(new Player.RegisterTableMsg(
+				tableOtherDummies.get(0).getRef(), 9, 2, true, teacherDummy.getRef()));
+		teacherDummy.receiveMessage();
+		for(int i = 1, j = 18; i < 8; i++, j+= 9)
+		{
+			thePlayer.tell(new Player.RegisterTableMsg(
+					tableOtherDummies.get(i).getRef(), j, i + 2, true, teacherDummy.getRef()));
+			teacherDummy.receiveMessage();
+		}
+
+
+		// Start "new iteration"
+		thePlayer.tell(new Player.ResetMemoryMsg(teacherDummy.getRef()));
+		Teacher.PlayerPerformedMemoryResetMsg response0 =
+				(Teacher.PlayerPerformedMemoryResetMsg) teacherDummy.receiveMessage();
+		assertEquals(0, response0._id);
+
+		thePlayer.tell(new Player.ConsentToStartIterationMsg());
+		Table.OfferMsg responseOffer = (Table.OfferMsg) tableDummy.receiveMessage();
+		assertEquals(1, responseOffer._offeredDigit);
+		for(TestProbe<Table.Protocol> tableOtherDummy : tableOtherDummies)
+			tableOtherDummy.expectNoMessage();
+
+
+		// Check Player's response for Table's request for additional info
+		thePlayer.tell(new Player.AdditionalInfoRequestMsg(new int[]{3,7}, tableDummy.getRef(), 0));
+		Table.AdditionalInfoMsg response = (Table.AdditionalInfoMsg) tableDummy.receiveMessage();
+		assertTrue(Arrays.equals(response._digits, new int[]{3, 7}));
+		assertTrue(Arrays.equals(response._collisions, new boolean[]{true, true}));
+		assertTrue(Arrays.equals(response._weights, new float[]{0L, 0L}));
+
+
+		// Send to a Player rejection of his offer
+		thePlayer.tell(new Player.RejectOfferMsg(1, tableDummy.getRef(), 0));
+		Table.OfferMsg responseNewOffer = (Table.OfferMsg) tableDummy.receiveMessage();
+		assertEquals(0, responseNewOffer._offeredDigit);
+		assertEquals((float) 0, responseNewOffer._digitWeight);
+
+
+		// Simulate that the Player is run out of possibilities
+		thePlayer.tell(new Player.NegotiationsFinishedMsg(0, tableDummy.getRef(), 0));
+		tableDummy.expectNoMessage();
+	}
 }

@@ -107,7 +107,6 @@ public class TableTest
 		playerDummy_3.expectNoMessage();
 
 		// Simulate replacing conflicting digit
-		theTable.tell(new Table.WithdrawOfferMsg(1, playerDummy_1.getRef(), 0));
 		theTable.tell(new Table.OfferMsg(8, 3L, playerDummy_1.getRef(), 0));
 		playerDummy_1.expectNoMessage();
 		Player.AdditionalInfoRequestMsg response4 = (Player.AdditionalInfoRequestMsg) playerDummy_2.receiveMessage();

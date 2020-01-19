@@ -42,14 +42,14 @@ public class PlayerMemory
 
     public PlayerMemory(int sudokuSize)
     {
-        this._rewards = new float[sudokuSize][sudokuSize]; // By default initialized to 0
+        this._rewards = new float[sudokuSize][sudokuSize];              // By default initialized to 0
         this._collisions = new boolean[sudokuSize][sudokuSize];
-        this._digitVector = new int[sudokuSize]; // By default initialized to 0
-        this._mask = new boolean[sudokuSize]; // By default initialized to false
+        this._digitVector = new int[sudokuSize];                        // By default initialized to 0
+        this._mask = new boolean[sudokuSize];                           // By default initialized to false
         this._digitPriorities = new int[sudokuSize][sudokuSize];
         this._tablePriorities = new int[sudokuSize];
-        this._accepted = new boolean[sudokuSize]; // By default initialized to false
-        this._finished = new boolean[sudokuSize]; // By default initialized to false
+        this._accepted = new boolean[sudokuSize];                       // By default initialized to false
+        this._finished = new boolean[sudokuSize];                       // By default initialized to false
     }
 
     public int getSudokuSize() {return _digitVector.length;}
@@ -181,8 +181,7 @@ public class PlayerMemory
             final WeightValuePair[] digitWeightPair = new WeightValuePair[sudokuSize];
             for (int j = 0; j < sudokuSize; ++j)
             {
-                digitWeightPair[j]._weight = _rewards[i][j];
-                digitWeightPair[j]._value = j+1;
+                digitWeightPair[j] = new WeightValuePair(_rewards[i][j], j + 1);
             }
             // Sort from highest to lowest
             Arrays.sort(digitWeightPair, Collections.reverseOrder());
@@ -195,8 +194,7 @@ public class PlayerMemory
         final WeightValuePair[] indexWeightPair = new WeightValuePair[sudokuSize];
         for (int i = 0; i < sudokuSize; ++i) // Sum weights for each Table
         {
-            indexWeightPair[i]._value = i;
-            indexWeightPair[i]._weight = 0;
+            indexWeightPair[i] = new WeightValuePair(0, i);
             for (int j = 0; j < sudokuSize; ++j)
             {
                 indexWeightPair[i]._weight += _rewards[i][j];

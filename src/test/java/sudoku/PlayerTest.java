@@ -10,8 +10,7 @@ import java.util.Arrays;
 import java.util.Vector;
 
 import static junit.framework.TestCase.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 
 public class PlayerTest
@@ -79,7 +78,9 @@ public class PlayerTest
 		// Prepare dummy Tables and dummy Teacher
 		TestProbe<Teacher.Protocol> teacherDummy = testKit.createTestProbe();
 		TestProbe<Table.Protocol> tableDummy = testKit.createTestProbe();
-		TestProbe<Table.Protocol> tableOtherDummy = testKit.createTestProbe();
+		Vector<TestProbe<Table.Protocol>> tableOtherDummies = new Vector<>();
+		for(int i = 0; i < 8; i++)
+			tableOtherDummies.add(testKit.createTestProbe());
 
 		// Create Player to test
 		ActorRef<Player.Protocol> thePlayer = testKit.spawn(
@@ -90,8 +91,14 @@ public class PlayerTest
 				tableDummy.getRef(), 0, 0, false, teacherDummy.getRef()));
 		teacherDummy.receiveMessage();
 		thePlayer.tell(new Player.RegisterTableMsg(
-				tableOtherDummy.getRef(), 9, 5, true, teacherDummy.getRef()));
+				tableOtherDummies.get(0).getRef(), 9, 5, true, teacherDummy.getRef()));
 		teacherDummy.receiveMessage();
+		for(int i = 1, j = 18; i < 8; i++, j+= 9)
+		{
+			thePlayer.tell(new Player.RegisterTableMsg(
+					tableOtherDummies.get(i).getRef(), j, 0, false, teacherDummy.getRef()));
+			teacherDummy.receiveMessage();
+		}
 
 		// Start "new iteration"
 		thePlayer.tell(new Player.ResetMemoryMsg(teacherDummy.getRef()));
@@ -99,11 +106,39 @@ public class PlayerTest
 				(Teacher.PlayerPerformedMemoryResetMsg) teacherDummy.receiveMessage();
 		assertEquals(0, response0._id);
 
+		thePlayer.tell(new Player.ConsentToStartIterationMsg());
+		Table.OfferMsg responseOffer = (Table.OfferMsg) tableDummy.receiveMessage();
+		int respondedDigit = responseOffer._offeredDigit;
+		assertNotEquals(5, respondedDigit);
+		System.out.println("\n\t" +
+				"Player offered " + respondedDigit + " with weight " + responseOffer._digitWeight);
+
+		tableOtherDummies.get(0).expectNoMessage();
+		for(TestProbe<Table.Protocol> tableOtherDummy : tableOtherDummies.subList(1, tableOtherDummies.size()))
+		{
+			responseOffer = (Table.OfferMsg) tableOtherDummy.receiveMessage();
+			assertNotEquals(5, responseOffer._offeredDigit);
+			assertEquals(respondedDigit, responseOffer._offeredDigit);
+		}
+
 		// Check Player's response for Table's request for additional info
 		thePlayer.tell(new Player.AdditionalInfoRequestMsg(new int[]{5,6}, tableDummy.getRef(), 0));
 		Table.AdditionalInfoMsg response = (Table.AdditionalInfoMsg) tableDummy.receiveMessage();
 		assertTrue(Arrays.equals(response._digits, new int[]{5, 6}));
 		assertTrue(Arrays.equals(response._collisions, new boolean[]{true, false}));
 		assertTrue(Arrays.equals(response._weights, new float[]{0L, 0L}));
+
+
+		// Send to a Player rejection of his offer
+		thePlayer.tell(new Player.RejectOfferMsg(respondedDigit, tableDummy.getRef(), 0));
+		Table.OfferMsg responseNewOffer = (Table.OfferMsg) tableDummy.receiveMessage();
+		assertNotEquals(4, responseNewOffer._offeredDigit);
+		assertNotEquals(5, responseNewOffer._offeredDigit);
+		respondedDigit = responseNewOffer._offeredDigit;
+		System.out.println("\n\t" +
+				"Player offered next: " + respondedDigit + " with weight " + responseNewOffer._digitWeight + "\n");
+		tableOtherDummies.get(0).expectNoMessage();
+		for(TestProbe<Table.Protocol> tableOtherDummy : tableOtherDummies.subList(1, tableOtherDummies.size()))
+			tableOtherDummy.expectNoMessage();
 	}
 }

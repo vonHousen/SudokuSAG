@@ -1,6 +1,8 @@
 package sudoku;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 
 public class PlayerMemory
 {
@@ -12,10 +14,31 @@ public class PlayerMemory
     private final int[] _digitVector;
     /** Array of flags indicating hard-coded fields. If true, field cannot be modified. */
     private final boolean[] _mask;
+    /** Array of digits ordered from highest to lowest priority for a specific Table. The first index is for field and the second for priority. */
+    private final int[][] _digitPriorities;
+    /** Array of Table internal indices ordered from highest to lowest priority. */
+    private final int[] _tablePriorities;
     /** Array of flags indicating that Player accepted offer on a Table. */
     private final boolean[] _accepted;
     /** Array of flags indicating that a Table linked to a certain field ended negotiations. */
     private final boolean[] _finished;
+
+    private static class WeightValuePair implements Comparable<WeightValuePair>
+    {
+        public float _weight;
+        public int _value;
+
+        public WeightValuePair(float weight, int value)
+        {
+            this._weight = weight;
+            this._value = value;
+        }
+
+        public int compareTo(WeightValuePair p)
+        {
+            return Float.compare(_weight, p._weight);
+        }
+    }
 
     public PlayerMemory(int sudokuSize)
     {
@@ -23,9 +46,13 @@ public class PlayerMemory
         this._collisions = new boolean[sudokuSize][sudokuSize];
         this._digitVector = new int[sudokuSize]; // By default initialized to 0
         this._mask = new boolean[sudokuSize]; // By default initialized to false
+        this._digitPriorities = new int[sudokuSize][sudokuSize];
+        this._tablePriorities = new int[sudokuSize];
         this._accepted = new boolean[sudokuSize]; // By default initialized to false
         this._finished = new boolean[sudokuSize]; // By default initialized to false
     }
+
+    public int getSudokuSize() {return _digitVector.length;}
 
     public boolean isAccepted(int n) {return _accepted[n];}
 
@@ -139,6 +166,47 @@ public class PlayerMemory
         for (int i = 0; i < sudokuSize; ++i)
         {
             _collisions[i][digit] = true;
+        }
+    }
+
+    public int getTablePriority(int p){return _tablePriorities[p];}
+
+    public int getDigitPriority(int n, int p){return _digitPriorities[n][p];}
+
+    public void prioritizeTables()
+    {
+        final int sudokuSize = _digitVector.length;
+        for (int i = 0; i < sudokuSize; ++i) // Sort digits by weight for each Table
+        {
+            final WeightValuePair[] digitWeightPair = new WeightValuePair[sudokuSize];
+            for (int j = 0; j < sudokuSize; ++j)
+            {
+                digitWeightPair[j]._weight = _awards[i][j];
+                digitWeightPair[j]._value = j+1;
+            }
+            // Sort from highest to lowest
+            Arrays.sort(digitWeightPair, Collections.reverseOrder());
+            for (int j = 0; j < sudokuSize; ++j)
+            {
+                _digitPriorities[i][j] = digitWeightPair[j]._value;
+            }
+        }
+
+        final WeightValuePair[] indexWeightPair = new WeightValuePair[sudokuSize];
+        for (int i = 0; i < sudokuSize; ++i) // Sum weights for each Table
+        {
+            indexWeightPair[i]._value = i;
+            indexWeightPair[i]._weight = 0;
+            for (int j = 0; j < sudokuSize; ++j)
+            {
+                indexWeightPair[i]._weight += _awards[i][j];
+            }
+        }
+        // Sort tables from lowest to highest
+        Arrays.sort(indexWeightPair);
+        for (int i = 0; i < sudokuSize; ++i)
+        {
+            _tablePriorities[i] = indexWeightPair[i]._value;
         }
     }
 

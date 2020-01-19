@@ -452,7 +452,35 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	 */
 	private Behavior<Protocol> onConsentToStartIteration(ConsentToStartIterationMsg msg)
 	{
-		// TODO
+		_memory.prioritizeTables();
+		final int sudokuSize = _memory.getSudokuSize();
+		for (int i = 0; i < sudokuSize; ++i)
+		{
+			final int tableIndex = _memory.getTablePriority(i);
+			if (!_memory.getMask(tableIndex)) // If the field is not hard-coded
+			{
+				boolean offerSent = false;
+				for (int p = 0; p < sudokuSize; ++p)
+				{
+					final int digit = _memory.getDigitPriority(tableIndex, p);
+					if (!_memory.getCollision(tableIndex, digit)) // If the digit doesn't collide
+					{
+						final ActorRef<Table.Protocol> tempTableRef = _tables.getAgent(tableIndex);
+						tempTableRef.tell(new Table.OfferMsg(digit,
+								_memory.getAward(tableIndex, digit),
+								getContext().getSelf(), _playerId));
+						offerSent = true;
+						break; // Do not send any more offers to this Table
+					}
+				}
+				if (!offerSent) // Couldn't offer any digit
+				{
+					final ActorRef<Table.Protocol> tempTableRef = _tables.getAgent(tableIndex);
+					// Send offer with a special value (zero)
+					tempTableRef.tell(new Table.OfferMsg(0, 0L, getContext().getSelf(), _playerId));
+				}
+			}
+		}
 
 		return this;
 	}

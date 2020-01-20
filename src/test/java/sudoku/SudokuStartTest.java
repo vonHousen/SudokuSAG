@@ -178,4 +178,51 @@ public class SudokuStartTest
 
 		assertEquals(sudokuSolution, sudokuResults);
 	}
+
+	@Test
+	public void test_6_SolvingSudoku()
+	{
+		int NO = 6;
+		int rank = 2;
+		int[][] naturalBoard = {
+				{0,2,3,0},
+				{3,4,1,0},
+				{2,1,4,0},
+				{0,0,0,1}
+		};
+		int[][] naturalSolution = {
+				{1,2,3,4},
+				{3,4,1,2},
+				{2,1,4,3},
+				{4,3,2,1}
+		};
+		Sudoku sudoku = createSudokuFromNaturalBoard(rank, naturalBoard);
+		Sudoku sudokuSolution = createSudokuFromNaturalBoard(rank, naturalSolution);
+
+		sudoku.printNatural();
+
+		// Create the Supervisor
+		TestProbe<SudokuSupervisor.Protocol> dummyGuardian = testKit.createTestProbe();
+		ActorRef<Teacher.Protocol> theTeacher;
+		SudokuSupervisor.IterationFinishedMsg results;
+		Sudoku sudokuResults;
+		Sudoku oldSudoku = sudoku;
+		do
+		{
+			// Swap sudoku content (fixate new digits)
+			sudoku.setBoard(oldSudoku.getBoard());
+			// Create the Teacher with previously solved sudoku
+			theTeacher = testKit.spawn(Teacher.create(
+					new Teacher.CreateMsg("teacher-" + NO, sudoku, dummyGuardian.getRef())
+			), "test-" + NO);
+			results = (SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage();
+			sudokuResults = results._newSolution;
+			oldSudoku = sudokuResults;
+			System.out.println();
+			sudokuResults.printNatural();
+			++NO;
+		} while (!sudokuResults.equals(sudoku) && !sudokuResults.equals(sudokuSolution));
+
+		assertEquals(sudokuSolution, sudokuResults);
+	}
 }

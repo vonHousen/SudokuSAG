@@ -66,6 +66,8 @@ public class Sudoku
 		}
 	}
 
+	public int[][] getBoard(){return _board;}
+
 	/**
 	 * Set board default state.
 	 * @param board		2d array of sudoku digits (0 means that the field is empty)

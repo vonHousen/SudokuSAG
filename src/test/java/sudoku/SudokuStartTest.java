@@ -35,54 +35,89 @@ public class SudokuStartTest
 		System.out.println("\n======================================> Test finished\n");
 	}
 
-	@Test
-	public void testSolvingSimplestSudoku()
+	private Sudoku createSudokuFromNaturalBoard(int rank, int[][] naturalSudokuBoard)
 	{
-		TestProbe<SudokuSupervisor.Protocol> dummyGuardian = testKit.createTestProbe();
-
-		int rank = 2;
 		Sudoku sudoku = new Sudoku(rank);
-		Sudoku sudokuSolution = new Sudoku(rank);
-		int[][] naturalSudokuBoard = {
-				// yOri = 0 -> 3
-				// x = 0 ----> 3
-				{1,2,3,4},		// xOri = 0, y = 0
-				{3,4,1,2},
-				{2,1,4,3},
-				{4,3,2,0}		// xOri = 3, y = 3
-		};
-		int[][] naturalSudokuBoardSolution = {
-				// yOri = 0 -> 3
-				// x = 0 ----> 3
-				{1,2,3,4},		// xOri = 0, y = 0
-				{3,4,1,2},
-				{2,1,4,3},
-				{4,3,2,1}		// xOri = 3, y = 3
-		};
 		int[][] transformedSudokuBoard = new int[rank*rank][rank*rank];
-		int[][] transformedSudokuBoardSolution = new int[rank*rank][rank*rank];
 		for(int x = 0; x < rank*rank; ++x)
 			for(int y = 0; y < rank*rank; ++y)
 				transformedSudokuBoard[x][y] = naturalSudokuBoard[y][x];
 		sudoku.setBoard(transformedSudokuBoard);
-		for(int x = 0; x < rank*rank; ++x)
-			for(int y = 0; y < rank*rank; ++y)
-				transformedSudokuBoardSolution[x][y] = naturalSudokuBoardSolution[y][x];
-		sudokuSolution.setBoard(transformedSudokuBoardSolution);
+		return sudoku;
+	}
 
+	@Test
+	public void testSolvingSimplestSudoku()
+	{
+		int NO = 3;
+		int rank = 2;
+		int[][] naturalBoard = {
+				{1,2,3,4},
+				{3,4,1,2},
+				{2,1,4,3},
+				{4,3,2,0}
+		};
+		int[][] naturalSolution = {
+				{1,2,3,4},
+				{3,4,1,2},
+				{2,1,4,3},
+				{4,3,2,1}
+		};
+		Sudoku sudoku = createSudokuFromNaturalBoard(rank, naturalBoard);
+		Sudoku sudokuSolution = createSudokuFromNaturalBoard(rank, naturalSolution);
+
+		// create the Supervisor & Teacher
+		TestProbe<SudokuSupervisor.Protocol> dummyGuardian = testKit.createTestProbe();
 		ActorRef<Teacher.Protocol> theTeacher = testKit.spawn(Teacher.create(
-				new Teacher.CreateMsg("teacher", sudoku, dummyGuardian.getRef())
-		), "test3");
+				new Teacher.CreateMsg("teacher-" + NO, sudoku, dummyGuardian.getRef())
+		), "test-" + NO);
 
 		SudokuSupervisor.IterationFinishedMsg firstIterationResults =
 				(SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage();
 		Sudoku firstIterationSudoku = firstIterationResults._newSolution;
 
+		// see how good are first iteration's results
 		sudoku.printNatural();
 		System.out.println();
 		firstIterationSudoku.printNatural();
 
 		assertNotEquals(sudoku, sudokuSolution);				// just check if Teacher's constructor uses deep copy
-		assertEquals(firstIterationSudoku, sudokuSolution);
+		assertEquals(firstIterationSudoku, sudokuSolution);		// check if solved
+	}
+
+	@Test
+	public void testSolvingSudoku_1()
+	{
+		int NO = 4;
+		int rank = 2;
+		int[][] naturalBoard = {
+				{0,2,3,4},
+				{3,0,1,2},
+				{2,1,0,3},
+				{4,3,2,0}
+		};
+		int[][] naturalSolution = {
+				{1,2,3,4},
+				{3,4,1,2},
+				{2,1,4,3},
+				{4,3,2,1}
+		};
+		Sudoku sudoku = createSudokuFromNaturalBoard(rank, naturalBoard);
+		Sudoku sudokuSolution = createSudokuFromNaturalBoard(rank, naturalSolution);
+
+		// create the Supervisor & Teacher
+		TestProbe<SudokuSupervisor.Protocol> dummyGuardian = testKit.createTestProbe();
+		ActorRef<Teacher.Protocol> theTeacher = testKit.spawn(Teacher.create(
+				new Teacher.CreateMsg("teacher-4", sudoku, dummyGuardian.getRef())
+		), "test-4");
+
+		SudokuSupervisor.IterationFinishedMsg firstIterationResults =
+				(SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage();
+		Sudoku firstIterationSudoku = firstIterationResults._newSolution;
+
+		// see how good are first iteration's results
+		sudoku.printNatural();
+		System.out.println();
+		firstIterationSudoku.printNatural();
 	}
 }

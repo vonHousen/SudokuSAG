@@ -108,8 +108,8 @@ public class SudokuStartTest
 		// create the Supervisor & Teacher
 		TestProbe<SudokuSupervisor.Protocol> dummyGuardian = testKit.createTestProbe();
 		ActorRef<Teacher.Protocol> theTeacher = testKit.spawn(Teacher.create(
-				new Teacher.CreateMsg("teacher-4", sudoku, dummyGuardian.getRef())
-		), "test-4");
+				new Teacher.CreateMsg("teacher-" + NO, sudoku, dummyGuardian.getRef())
+		), "test-" + NO);
 
 		SudokuSupervisor.IterationFinishedMsg results =
 				(SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage();

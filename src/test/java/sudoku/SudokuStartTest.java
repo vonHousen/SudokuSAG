@@ -111,13 +111,23 @@ public class SudokuStartTest
 				new Teacher.CreateMsg("teacher-4", sudoku, dummyGuardian.getRef())
 		), "test-4");
 
-		SudokuSupervisor.IterationFinishedMsg firstIterationResults =
+		SudokuSupervisor.IterationFinishedMsg results =
 				(SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage();
-		Sudoku firstIterationSudoku = firstIterationResults._newSolution;
+		Sudoku sudokuResults = results._newSolution;
 
 		// see how good are first iteration's results
 		sudoku.printNatural();
 		System.out.println();
-		firstIterationSudoku.printNatural();
+		sudokuResults.printNatural();
+
+		if(!sudokuResults.equals(sudokuSolution))		// if not equals, give another chance
+		{
+			results = (SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage();
+			sudokuResults = results._newSolution;
+			System.out.println();
+			sudokuResults.printNatural();
+		}
+
+		assertEquals(sudokuSolution, sudokuResults);
 	}
 }

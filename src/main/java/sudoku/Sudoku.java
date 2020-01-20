@@ -26,7 +26,15 @@ public class Sudoku
 		this._mask = new boolean[this._size][this._size];
 	}
 
-	/** Custom exception thrown when trying to initialize board with incorrect size. */
+	public Sudoku(Sudoku sudoku)
+	{
+		this._rank = sudoku._rank;
+		this._size = sudoku._size;
+		this._board = sudoku._board.clone();
+		this._mask = sudoku._mask.clone();
+	}
+
+		/** Custom exception thrown when trying to initialize board with incorrect size. */
 	public static class IncorrectBoardSizeException extends RuntimeException
 	{
 		public IncorrectBoardSizeException(String msg)
@@ -98,6 +106,8 @@ public class Sudoku
 		}
 	}
 
+	public void insertDigit(int x, int y, int digit) {_board[x][y] = digit;}
+
 	public int getDigit(int x, int y) { return _board[x][y]; }
 
 	public boolean getMask(int x, int y) { return _mask[x][y]; }
@@ -115,6 +125,27 @@ public class Sudoku
 	public int getPlayerCount()
 	{
 		return 3 * _size;
+	}
+
+	public int getTableCount()
+	{
+		return _size * _size;
+	}
+
+	public int getEmptyFieldsCount()
+	{
+		int count = 0;
+		for (int i = 0; i < this._size; ++i)
+		{
+			for (int j = 0; j < this._size; ++j)
+			{
+				if (_board[i][j] == 0)
+				{
+					++count;
+				}
+			}
+		}
+		return count;
 	}
 
 	/** Prints the board of the Sudoku in natural, human-friendly style. */

@@ -133,10 +133,12 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	public static class TableFinishedNegotiationsMsg implements Protocol
 	{
 		public final int _digit;
+		public final Position _position;
 		public final int _tableId;
-		public TableFinishedNegotiationsMsg(int digit, int tableId)
+		public TableFinishedNegotiationsMsg(int digit, Position position, int tableId)
 		{
 			this._digit = digit;
+			this._position = position;
 			this._tableId = tableId;
 		}
 	}
@@ -149,6 +151,8 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	private Map<Integer, ActorRef<Player.Protocol>> _players;
 	/** Data structure for storing all Tables - child agents. */
 	private Map<Integer, ActorRef<Table.Protocol>> _tables;
+	/** Data structure for counting acknowledgement messages from Players and Tables. */
+	private TeacherMemory _memory;
 	/** HashMap for inspected digits. Key: tableId, Value: inspectedDigit. */
 	private Map<Integer, Integer> _inspectedDigits;
 	/** Inspector's reference. */
@@ -172,6 +176,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		this._parent = createMsg._replyTo;
 		this._players = new HashMap<>();
 		this._tables = new HashMap<>();
+		this._memory = new TeacherMemory(_sudoku.getPlayerCount(), _sudoku.getTableCount(), _sudoku.getEmptyFieldsCount());
 		this._inspectedDigits = new HashMap<>();
 		context.getLog().info("Teacher created");			// left for debugging only
 
@@ -263,8 +268,10 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	 */
 	private Behavior<Protocol> onTablePerformedMemoryReset(TablePerformedMemoryResetMsg msg)
 	{
-		// TODO Emil - zliczanie resetow - patrz prepareForNewIterationAndRun
-
+		if (_memory.addTableReset())
+		{
+			startNewIteration();
+		}
 		return this;
 	}
 
@@ -275,8 +282,10 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	 */
 	private Behavior<Protocol> onPlayerPerformedMemoryReset(PlayerPerformedMemoryResetMsg msg)
 	{
-		// TODO Emil - zliczanie resetow - patrz prepareForNewIterationAndRun
-
+		if (_memory.addPlayerReset())
+		{
+			startNewIteration();
+		}
 		return this;
 	}
 
@@ -289,8 +298,17 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	 */
 	private Behavior<Protocol> onTableFinishedNegotiations(TableFinishedNegotiationsMsg msg)
 	{
-		// TODO Emil - patrz opis
-
+		_sudoku.insertDigit(msg._position.x, msg._position.y, msg._digit);
+		if (_memory.addTableFinished())
+		{
+			returnNewSolution();
+			if (_sudoku.getEmptyFieldsCount() > 0) // End if sudoku was solved
+			{
+				_sudoku.reset();
+				_memory.reset();
+				prepareForNewIterationAndRun();
+			}
+		}
 		return this;
 	}
 
@@ -494,7 +512,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	}
 
 	/**
-	 *  Teacher commands it's agents (by sending ResetMemoryMsg) in appropriate order to reset their's memory.
+	 *  Teacher commands its agents (by sending ResetMemoryMsg) in appropriate order to reset theirs memory.
 	 *  It should collect all messages in onTablePerformedMemoryReset and onPlayerPerformedMemoryReset,
 	 *  and call startNewIteration method on collecting the last one.
 	 */
@@ -524,9 +542,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	 */
 	private void returnNewSolution()
 	{
-		Sudoku newSolution = new Sudoku(_sudoku.getRank());
-		// TODO Emil - patrz opis
-
+		Sudoku newSolution = new Sudoku(_sudoku);
 		_parent.tell(new SudokuSupervisor.IterationFinishedMsg(newSolution));
 	}
 }

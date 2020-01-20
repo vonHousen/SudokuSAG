@@ -174,7 +174,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 		_tableId = createMsg._tableId;
 		_tablePos = createMsg._tablePos;
 		_memory = new TableMemory(createMsg._sudokuSize);
-		_players = new AgentMap<ActorRef<Player.Protocol>>(3);
+		_players = new AgentMap<>(3);
 		_parent = createMsg._replyTo;
 		// context.getLog().info("Table {} created", _TableId);			// left for debugging only
 	}
@@ -273,7 +273,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 			_players.getAgent(i).tell(new Player.NegotiationsFinishedMsg(
 					digitSolution, getContext().getSelf(), _tableId));
 		}
-		_parent.tell(new Teacher.TableFinishedNegotiationsMsg(digitSolution, _tableId));
+		_parent.tell(new Teacher.TableFinishedNegotiationsMsg(digitSolution, _tablePos, _tableId));
 	}
 
 	/**

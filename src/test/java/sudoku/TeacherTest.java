@@ -31,6 +31,7 @@ public class TeacherTest
 	public void testPassingSudokuDigits()
 	{
 		TestProbe<Sudoku> dummyInspector = testKit.createTestProbe();
+		TestProbe<SudokuSupervisor.Protocol> dummyGuardian = testKit.createTestProbe();
 
 		int rank = 3;
 		Sudoku sudoku = new Sudoku(rank);
@@ -54,9 +55,10 @@ public class TeacherTest
 		sudoku.setBoard(transformedSudokuBoard);
 
 		ActorRef<Teacher.Protocol> teacher = testKit.spawn(Teacher.create(
-				new Teacher.CreateMsg("teacher1", sudoku, null)
+				new Teacher.CreateMsg("teacher1", sudoku, dummyGuardian.getRef())
 		), "test4");
 
+		// test is passed only because players got inspection messages fast enough
 		teacher.tell(new Teacher.InspectChildDigitsMsg(dummyInspector.getRef()));
 		Sudoku inspectionResults = dummyInspector.receiveMessage();
 

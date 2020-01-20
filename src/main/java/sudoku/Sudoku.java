@@ -78,7 +78,7 @@ public class Sudoku
 				if (board[i][j] >= 0 && board[i][j] <= _size)
 				{
 					_board[i][j] = board[i][j];
-					_mask[i][j] = (board[i][j] == 0);
+					_mask[i][j] = (board[i][j] != 0);
 				}
 				else
 				{

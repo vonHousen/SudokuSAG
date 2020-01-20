@@ -65,23 +65,10 @@ public class PlayerMemory
         _finished[n] = true;
     }
 
-    public ArrayList<Integer> finishNegotiations(int n)
+    public void finishNegotiations(int n)
     {
         _finished[n] = true;
         _accepted[n] = false;
-        final ArrayList<Integer> tableIndices = new ArrayList<>();
-        final int resultingDigit = _digitVector[n];
-        for (int i = 0; i < _digitVector.length; ++i)
-        {
-            // If the digit was offered on another Table
-            if (_digitVector[i] == resultingDigit && i != n)
-            {
-                tableIndices.add(i);
-                _digitVector[i] = 0;
-                _accepted[i] = false;
-            }
-        }
-        return tableIndices;
     }
 
     public boolean alreadyAccepted(int digit)

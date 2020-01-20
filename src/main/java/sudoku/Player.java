@@ -395,6 +395,11 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		final int rejectedDigit = msg._rejectedDigit;
 		{
 			final int myDigit = _memory.getDigit(tableIndex);
+			if(_memory.isFinished(tableIndex))
+			{
+				throw new BadRejectionException("Rejected digit is for a field that is already negotiated.",
+						msg._tableId, _playerId, rejectedDigit, myDigit);
+			}
 			if (rejectedDigit != myDigit)
 			{
 				throw new BadRejectionException("Table rejected different digit than Player offered.",
@@ -453,16 +458,8 @@ public class Player extends AbstractBehavior<Player.Protocol>
 				throw new BadFinishException("Player finished negotiations with a different digit than Table.",
 						msg._tableId, _playerId, myDigit, resultingDigit);
 			}
-			final ArrayList<Integer> tableIndices = _memory.finishNegotiations(tableIndex);
+			_memory.finishNegotiations(tableIndex);
 			_memory.setDigitColliding(myDigit);
-			for (Integer n : tableIndices)
-			{
-				if (_memory.isFinished(n)) // Digit was already chosen (permanently) on another Table
-				{
-					throw new Player.DoubleFinishException("Digit was already inserted somewhere else.",
-							msg._tableId, _playerId, myDigit);
-				}
-			}
 		}
 		else
 		{

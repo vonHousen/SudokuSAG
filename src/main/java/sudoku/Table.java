@@ -156,7 +156,6 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	/** Reference to Table's parent - the Teacher */
 	private final ActorRef<Teacher.Protocol> _parent;
 
-
 	/**
 	 * Public method that calls private constructor.
 	 * Existence required by Akka.
@@ -268,6 +267,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	private void quitNegotiations()
 	{
 		int digitSolution = _memory.getBestOffer();
+		_memory.finishedIterationWithDigit(digitSolution);
 		for (int i = 0; i < 3; ++i)
 		{
 			_players.getAgent(i).tell(new Player.NegotiationsFinishedMsg(
@@ -301,6 +301,9 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	 */
 	private Behavior<Protocol> onOffer(OfferMsg msg) // offer
 	{
+		if(_memory.didAlreadyFinished())
+			return this;    // ignore late messages
+
 		final int index = _players.getIndex(msg._playerId);
 		final ActorRef<Player.Protocol> player = _players.getAgent(index);
 		final int digit = msg._offeredDigit;
@@ -337,6 +340,9 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	 */
 	private Behavior<Protocol> onAdditionalInfo(AdditionalInfoMsg msg) // specified
 	{
+		if(_memory.didAlreadyFinished())
+			return this;    // ignore late messages
+
 		final int index = _players.getIndex(msg._playerId);
 
 		for (int i = 0; i < msg._digits.length; ++i)
@@ -366,6 +372,9 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	 */
 	private Behavior<Protocol> onWithdrawOffer(WithdrawOfferMsg msg) // deny
 	{
+		if(_memory.didAlreadyFinished())
+			return this;    // ignore late messages
+
 		withdrawAndInform(msg._withdrawnDigit);
 
 		return this;
@@ -381,6 +390,9 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	 */
 	private Behavior<Protocol> onAcceptNegotiationsResults(AcceptNegotiationsResultsMsg msg) // accept
 	{
+		if(_memory.didAlreadyFinished())
+			return this;    // ignore late messages
+
 		if (msg._acceptedDigit == _memory.getBestOffer())
 		{
 			_memory.incrementAcceptanceCount();

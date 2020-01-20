@@ -21,6 +21,11 @@ public class TableMemory
     private int _acceptanceCount;
     /** The offer (digit) chosen after negotiations with Players. Zero means, the offer was not chosen yet. */
     private int _bestOffer;
+    /** Flag - does this table had already finished current negotiations. */
+    private boolean _hasFinishedIteration;
+    /** Does negotiations finished positively = with a consensus? */
+    private boolean _areNegotiationsFinishedPositively;
+
 
     public TableMemory(int sudokuSize)
     {
@@ -32,6 +37,8 @@ public class TableMemory
         this._offerCount = 0;
         this._acceptanceCount = 0;
         this._bestOffer = 0;
+        this._hasFinishedIteration = true;
+        this._areNegotiationsFinishedPositively = false;
     }
 
     /**
@@ -226,5 +233,23 @@ public class TableMemory
         _offerCount = 0;
         _acceptanceCount = 0;
         _bestOffer = 0;
+        _hasFinishedIteration = false;
+        _areNegotiationsFinishedPositively = false;
+    }
+
+    public boolean didAlreadyFinished()
+    {
+        if(!_hasFinishedIteration)
+            return false;
+        else if(_areNegotiationsFinishedPositively)
+            throw new RuntimeException("You should not even ask for that! Table got unexpected message!");
+        else
+            return true;
+    }
+
+    public void finishedIterationWithDigit(int digit)
+    {
+        _hasFinishedIteration = true;
+        _areNegotiationsFinishedPositively = (digit != 0);
     }
 }

@@ -183,7 +183,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		spawnPlayers();
 		spawnTables();
 		registerAgentsOnSetup();
-		//prepareForNewIterationAndRun();	TODO Emil - jak odkomentuje, to TeacherTest.TestPassingSudokuDigits failuje
+		prepareForNewIterationAndRun();
 	}
 
 	/**

@@ -89,6 +89,7 @@ public class SudokuStartTest
 	public void test_4_SolvingSudoku()
 	{
 		int NO = 4;
+		int chances = 1;
 		int rank = 2;
 		int[][] naturalBoard = {
 				{0,2,3,4},
@@ -120,7 +121,7 @@ public class SudokuStartTest
 		System.out.println();
 		sudokuResults.printNatural();
 
-		if(!sudokuResults.equals(sudokuSolution))		// if not equals, give another chance
+		while(!sudokuResults.equals(sudokuSolution) && chances-- > 0)		// give another chance
 		{
 			results = (SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage();
 			sudokuResults = results._newSolution;

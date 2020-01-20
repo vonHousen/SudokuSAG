@@ -30,8 +30,13 @@ public class Sudoku
 	{
 		this._rank = sudoku._rank;
 		this._size = sudoku._size;
-		this._board = sudoku._board.clone();
-		this._mask = sudoku._mask.clone();
+		this._board = new int[this._size][];
+		this._mask = new boolean[this._size][];
+		for (int i = 0; i < this._size; ++i)
+		{
+			this._board[i] = sudoku._board[i].clone();
+			this._mask[i] = sudoku._mask[i].clone();
+		}
 	}
 
 		/** Custom exception thrown when trying to initialize board with incorrect size. */

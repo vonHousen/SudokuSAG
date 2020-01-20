@@ -39,7 +39,7 @@ public class Sudoku
 		}
 	}
 
-		/** Custom exception thrown when trying to initialize board with incorrect size. */
+	/** Custom exception thrown when trying to initialize board with incorrect size. */
 	public static class IncorrectBoardSizeException extends RuntimeException
 	{
 		public IncorrectBoardSizeException(String msg)

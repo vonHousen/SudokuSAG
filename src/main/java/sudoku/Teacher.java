@@ -172,7 +172,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	private Teacher(ActorContext<Protocol> context, CreateMsg createMsg)
 	{
 		super(context);
-		this._sudoku = createMsg._sudoku;
+		this._sudoku = new Sudoku(createMsg._sudoku);
 		this._parent = createMsg._replyTo;
 		this._players = new HashMap<>();
 		this._tables = new HashMap<>();

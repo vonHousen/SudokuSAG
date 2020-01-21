@@ -477,7 +477,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	 */
 	private Behavior<Protocol> onResetMemory(ResetMemoryMsg msg)
 	{
-		_memory.reset();
+		_memory.hardReset();
 		msg._replyTo.tell(new Teacher.PlayerPerformedMemoryResetMsg(_playerId));
 		return this;
 	}

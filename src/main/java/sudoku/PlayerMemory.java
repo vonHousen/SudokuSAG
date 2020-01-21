@@ -12,8 +12,8 @@ public class PlayerMemory
     private final boolean[][] _collisions;
     /** Vector of current sudoku digits */
     private final int[] _digitVector;
-    /** Array of flags indicating hard-coded fields. If true, field cannot be modified. */
-    private final boolean[] _mask;
+    /** Array of flags indicating hard-coded fields. */
+    private final MaskState[] _mask;
     /** Array of digits ordered from highest to lowest priority for a specific Table. The first index is for field and the second for priority. */
     private final int[][] _digitPriorities;
     /** Array of Table internal indices ordered from highest to lowest priority. */
@@ -22,6 +22,19 @@ public class PlayerMemory
     private final boolean[] _accepted;
     /** Array of flags indicating that a Table linked to a certain field ended negotiations. */
     private final boolean[] _finished;
+
+    /**
+     * Definition of sudoku field mask.
+     * NONE - no mask applied, thus field digit may be modified freely
+     * SOFT - field digit cannot be modified until soft reset
+     * HARD - field digit cannot be modified until hard reset
+     */
+    private enum MaskState
+    {
+        NONE,
+        SOFT,
+        HARD
+    }
 
     private static class WeightValuePair implements Comparable<WeightValuePair>
     {
@@ -45,7 +58,7 @@ public class PlayerMemory
         this._rewards = new float[sudokuSize][sudokuSize];              // By default initialized to 0
         this._collisions = new boolean[sudokuSize][sudokuSize];
         this._digitVector = new int[sudokuSize];                        // By default initialized to 0
-        this._mask = new boolean[sudokuSize];                           // By default initialized to false
+        this._mask = new MaskState[sudokuSize];
         this._digitPriorities = new int[sudokuSize][sudokuSize];
         this._tablePriorities = new int[sudokuSize];
         this._accepted = new boolean[sudokuSize];                       // By default initialized to false
@@ -91,7 +104,7 @@ public class PlayerMemory
     {
         for (int i = 0; i < _digitVector.length; ++i)
         {
-            if (!_mask[i] && _digitVector[i] != 0)
+            if (_mask[i] == MaskState.NONE && _digitVector[i] != 0)
             {
                 _rewards[i][_digitVector[i]-1] += amount;
             }
@@ -108,7 +121,7 @@ public class PlayerMemory
      */
     public void setDigit(int n, int digit)
     {
-        if (_mask[n])
+        if (_mask[n] != MaskState.NONE)
         {
             throw new Sudoku.DigitImmutableException("Digit is hard-coded and cannot be modified");
         }
@@ -133,12 +146,19 @@ public class PlayerMemory
             throw new Sudoku.DigitOutOfRangeException("Sudoku digit out of range");
         }
         _digitVector[n] = digit;
-        _mask[n] = mask;
+        if (mask)
+        {
+            _mask[n] = MaskState.HARD;
+        }
+        else
+        {
+            _mask[n] = MaskState.NONE;
+        }
     }
 
     public int getDigit(int n){return _digitVector[n];}
 
-    public boolean getMask(int n) {return _mask[n];}
+    public boolean getMask(int n) {return _mask[n] != MaskState.NONE;}
 
     public float getAward(int n, int digit) {return _rewards[n][digit-1];}
 
@@ -195,21 +215,16 @@ public class PlayerMemory
         }
     }
 
-    /**
-     * Reset memory values that are not retained between iterations.
-     * Should be called each time before starting solving sudoku (before every iteration).
-     * Digit vector and mask have to be initialized for this to work.
-     */
-    public void reset()
+    private void genericReset(MaskState m_state)
     {
         final int sudokuSize = _digitVector.length;
         for (int i = 0; i < sudokuSize; ++i)
         {
             for (int j = 0; j < sudokuSize; ++j)
             {
-                _collisions[i][j] = _mask[i];
+                _collisions[i][j] = _mask[i] == m_state;
             }
-            if (_mask[i])
+            if (_mask[i] == m_state)
             {
                 setDigitColliding(_digitVector[i]);
             }
@@ -218,7 +233,37 @@ public class PlayerMemory
                 _digitVector[i] = 0;
             }
             _accepted[i] = false;
-            _finished[i] = _mask[i];
+            _finished[i] = _mask[i] == m_state;
         }
+    }
+
+    /**
+     * Reset memory values that are not retained between "big" iterations.
+     * Should be called each time before starting solving original sudoku (before every "big" iteration).
+     * Digit vector and mask have to be initialized for this to work.
+     */
+    public void hardReset()
+    {
+        genericReset(MaskState.HARD);
+    }
+
+    /**
+     * Reset memory values that are not retained between "small" iterations.
+     * Should be called each time before starting solving sudoku (before every "small" iteration).
+     * Digit vector and mask have to be initialized for this to work.
+     */
+    public void softReset()
+    {
+        final int sudokuSize = _digitVector.length;
+        // Temporarily fixate solved digits
+        for (int i = 0; i < sudokuSize; ++i)
+        {
+            if (_digitVector[i] != 0 && _mask[i] == MaskState.NONE)
+            {
+                _mask[i] = MaskState.SOFT;
+            }
+        }
+        // Clear memory
+        genericReset(MaskState.SOFT);
     }
 }

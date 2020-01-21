@@ -147,6 +147,16 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		}
 	}
 
+	/** Message commanding the agent to reset it's memory softly due to start of new mini-iteration. */
+	public static class ResetMemorySoftlyMsg implements Protocol, SharedProtocols.NewIterationProtocol
+	{
+		public final ActorRef<Teacher.Protocol> _replyTo;
+		public ResetMemorySoftlyMsg(ActorRef<Teacher.Protocol> replyTo)
+		{
+			this._replyTo = replyTo;
+		}
+	}
+
 	/** Message allowing the agent to start new iteration by sending new offers. */
 	public static class ConsentToStartIterationMsg implements Protocol, SharedProtocols.NewIterationProtocol
 	{}
@@ -264,6 +274,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 				.onMessage(NegotiationsFinishedMsg.class, this::onNegotiationsFinished)
 				.onMessage(ResetMemoryMsg.class, this::onResetMemory)
 				.onMessage(ConsentToStartIterationMsg.class, this::onConsentToStartIteration)
+				.onMessage(ResetMemorySoftlyMsg.class, this::onResetMemorySoftly)
 				.onSignal(PostStop.class, signal -> onPostStop())
 				.build();
 	}
@@ -478,6 +489,20 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	private Behavior<Protocol> onResetMemory(ResetMemoryMsg msg)
 	{
 		_memory.hardReset();
+		msg._replyTo.tell(new Teacher.PlayerPerformedMemoryResetMsg(_playerId));
+		return this;
+	}
+
+	/**
+	 * Player resets it's memory softly to get ready for new mini-iteration.
+	 * @param msg	message from the Teacher
+	 * @return		wrapped Behavior
+	 */
+	private Behavior<Protocol> onResetMemorySoftly(ResetMemorySoftlyMsg msg)
+	{
+		/* TODO
+		_memory.hardReset();
+		*/
 		msg._replyTo.tell(new Teacher.PlayerPerformedMemoryResetMsg(_playerId));
 		return this;
 	}

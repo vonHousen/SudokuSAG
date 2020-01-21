@@ -213,8 +213,8 @@ public class SudokuStartTest
 			sudoku.setBoard(oldSudoku.getBoard());
 			// Create the Teacher with previously solved sudoku
 			theTeacher = testKit.spawn(Teacher.create(
-					new Teacher.CreateMsg("teacher-" + NO, sudoku, dummyGuardian.getRef())
-			), "test-" + NO);
+					new Teacher.CreateMsg("teacher6-" + NO, sudoku, dummyGuardian.getRef())
+			), "test6-" + NO);
 			results = (SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage();
 			sudokuResults = results._newSolution;
 			oldSudoku = sudokuResults;

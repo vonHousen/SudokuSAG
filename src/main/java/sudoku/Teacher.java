@@ -550,8 +550,10 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	{
 		//Sudoku newSolution = new Sudoku(_sudoku);
 		//_parent.tell(new SudokuSupervisor.IterationFinishedMsg(newSolution));
-		if (_sudoku.getEmptyFieldsCount() != 0)
+		final int emptyFieldsCount = _sudoku.getEmptyFieldsCount();
+		if (emptyFieldsCount != 0)
 		{
+			_memory.setMaxTableFinishedCount(emptyFieldsCount);
 			if (!_sudoku.equals(_prevSudoku))
 			{
 				_prevSudoku.setBoard(_sudoku.getBoard());

@@ -6,7 +6,7 @@ public class TeacherMemory
 
     final private int _maxTableCount;
 
-    final private int _maxTableFinishedCount;
+    private int _maxTableFinishedCount;
 
     private int _playerResetCount;
 
@@ -22,6 +22,11 @@ public class TeacherMemory
         this._playerResetCount = 0;
         this._tableResetCount = 0;
         this._tableFinishedCount = 0;
+    }
+
+    public void setMaxTableFinishedCount(int count)
+    {
+        _maxTableFinishedCount = count;
     }
 
     private boolean allResetsCollected()

@@ -153,6 +153,8 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	private Map<Integer, ActorRef<Table.Protocol>> _tables;
 	/** Data structure for counting acknowledgement messages from Players and Tables. */
 	private TeacherMemory _memory;
+	/** Sudoku solution from the previous iteration */
+	private final Sudoku _prevSudoku;
 	/** HashMap for inspected digits. Key: tableId, Value: inspectedDigit. */
 	private Map<Integer, Integer> _inspectedDigits;
 	/** Inspector's reference. */
@@ -177,13 +179,14 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		this._players = new HashMap<>();
 		this._tables = new HashMap<>();
 		this._memory = new TeacherMemory(_sudoku.getPlayerCount(), _sudoku.getTableCount(), _sudoku.getEmptyFieldsCount());
+		this._prevSudoku = new Sudoku(this._sudoku);
 		this._inspectedDigits = new HashMap<>();
 		context.getLog().info("Teacher created");			// left for debugging only
 
 		spawnPlayers();
 		spawnTables();
 		registerAgentsOnSetup();
-		prepareForNewIterationAndRun();
+		prepareForNewBigIterationAndRun();
 	}
 
 	/**
@@ -302,12 +305,6 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		if (_memory.addTableFinished())
 		{
 			returnNewSolution();
-			if (_sudoku.getEmptyFieldsCount() > 0) // End if sudoku was solved
-			{
-				_sudoku.reset();
-				_memory.reset();
-				prepareForNewIterationAndRun();
-			}
 		}
 		return this;
 	}
@@ -516,7 +513,16 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	 *  It should collect all messages in onTablePerformedMemoryReset and onPlayerPerformedMemoryReset,
 	 *  and call startNewIteration method on collecting the last one.
 	 */
-	private void prepareForNewIterationAndRun()
+	private void prepareForNewSmallIterationAndRun()
+	{
+		for(ActorRef<Table.Protocol> table : _tables.values())
+			table.tell(new Table.ResetMemoryMsg(getContext().getSelf()));
+
+		for(ActorRef<Player.Protocol> player : _players.values())
+			player.tell(new Player.ResetMemorySoftlyMsg(getContext().getSelf()));
+	}
+
+	private void prepareForNewBigIterationAndRun()
 	{
 		for(ActorRef<Table.Protocol> table : _tables.values())
 			table.tell(new Table.ResetMemoryMsg(getContext().getSelf()));
@@ -542,7 +548,30 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	 */
 	private void returnNewSolution()
 	{
-		Sudoku newSolution = new Sudoku(_sudoku);
-		_parent.tell(new SudokuSupervisor.IterationFinishedMsg(newSolution));
+		//Sudoku newSolution = new Sudoku(_sudoku);
+		//_parent.tell(new SudokuSupervisor.IterationFinishedMsg(newSolution));
+		if (_sudoku.getEmptyFieldsCount() != 0)
+		{
+			if (!_sudoku.equals(_prevSudoku))
+			{
+				_prevSudoku.setBoard(_sudoku.getBoard());
+				_memory.reset();
+				prepareForNewSmallIterationAndRun();
+			}
+			else
+			{
+				// TODO New "big" iteration
+				//_sudoku.reset();
+				//prepareForNewBigIterationAndRun();
+
+				Sudoku newSolution = new Sudoku(_sudoku);
+				_parent.tell(new SudokuSupervisor.IterationFinishedMsg(newSolution));
+			}
+		}
+		else
+		{
+			Sudoku newSolution = new Sudoku(_sudoku);
+			_parent.tell(new SudokuSupervisor.IterationFinishedMsg(newSolution));
+		}
 	}
 }

@@ -500,9 +500,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	 */
 	private Behavior<Protocol> onResetMemorySoftly(ResetMemorySoftlyMsg msg)
 	{
-		/* TODO
-		_memory.hardReset();
-		*/
+		_memory.softReset();
 		msg._replyTo.tell(new Teacher.PlayerPerformedMemoryResetMsg(_playerId));
 		return this;
 	}

@@ -215,16 +215,16 @@ public class PlayerMemory
         }
     }
 
-    private void genericReset(MaskState m_state)
+    private void genericReset(int sudokuSize, MaskState mState)
     {
-        final int sudokuSize = _digitVector.length;
         for (int i = 0; i < sudokuSize; ++i)
         {
+            boolean maskValue = (_mask[i] == MaskState.HARD || _mask[i] == mState);
             for (int j = 0; j < sudokuSize; ++j)
             {
-                _collisions[i][j] = _mask[i] == m_state;
+                _collisions[i][j] = maskValue;
             }
-            if (_mask[i] == m_state)
+            if (maskValue)
             {
                 setDigitColliding(_digitVector[i]);
             }
@@ -233,7 +233,7 @@ public class PlayerMemory
                 _digitVector[i] = 0;
             }
             _accepted[i] = false;
-            _finished[i] = _mask[i] == m_state;
+            _finished[i] = maskValue;
         }
     }
 
@@ -244,7 +244,17 @@ public class PlayerMemory
      */
     public void hardReset()
     {
-        genericReset(MaskState.HARD);
+        final int sudokuSize = _digitVector.length;
+        // Undo fixate solved digits
+        for (int i = 0; i < sudokuSize; ++i)
+        {
+            if (_mask[i] == MaskState.SOFT)
+            {
+                _mask[i] = MaskState.NONE;
+            }
+        }
+        // Clear memory
+        genericReset(sudokuSize, MaskState.HARD);
     }
 
     /**
@@ -264,6 +274,6 @@ public class PlayerMemory
             }
         }
         // Clear memory
-        genericReset(MaskState.SOFT);
+        genericReset(sudokuSize, MaskState.SOFT);
     }
 }

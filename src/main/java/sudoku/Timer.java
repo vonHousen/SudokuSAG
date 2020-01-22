@@ -21,12 +21,12 @@ public class Timer extends AbstractBehavior<Timer.Protocol>
 	public static class RemindToCheckTablesMsg implements Protocol, SharedProtocols.ValidationProtocol
 	{
 		public final ActorRef<Teacher.Protocol> _replyTo;
-		public final int _waitSeconds;
+		public final int _waitMilliseconds;
 		public final int[] _tableIds;
-		public RemindToCheckTablesMsg(ActorRef<Teacher.Protocol> replyTo, int waitSeconds, int[] tableIds)
+		public RemindToCheckTablesMsg(ActorRef<Teacher.Protocol> replyTo, int waitMilliseconds, int[] tableIds)
 		{
 			this._replyTo = replyTo;
-			this._waitSeconds = waitSeconds;
+			this._waitMilliseconds = waitMilliseconds;
 			this._tableIds = tableIds;
 		}
 	}
@@ -71,7 +71,7 @@ public class Timer extends AbstractBehavior<Timer.Protocol>
 	{
 		try
 		{
-			Thread.sleep(msg._waitSeconds * 1000);
+			Thread.sleep(msg._waitMilliseconds);
 		}
 		catch (Exception e)
 		{

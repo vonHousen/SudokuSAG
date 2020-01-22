@@ -172,7 +172,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	/** Data structure for counting acknowledgement messages from Players and Tables. */
 	private TeacherMemory _memory;
 	/** Sudoku solution from the previous iteration */
-	private final Sudoku _prevSudoku;
+	private Sudoku _prevSudoku;
 	/** HashMap for inspected digits. Key: tableId, Value: inspectedDigit. */
 	private Map<Integer, Integer> _inspectedDigits;
 	/** Inspector's reference. */
@@ -333,10 +333,11 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	{
 		_sudoku.insertDigit(msg._position.x, msg._position.y, msg._digit);
 		final int tablesLeftCount =  _memory.addTableFinished(msg._tableId);
-		if(tablesLeftCount >= 1)
+		//getContext().getLog().info("" + tablesLeftCount);		// TODO delete
+		if(tablesLeftCount < 3 && tablesLeftCount > 0)
 		{
 			_timer.tell(new Timer.RemindToCheckTablesMsg(
-					getContext().getSelf(), 1, _memory.getTablesNotFinished()));
+					getContext().getSelf(), 500, _memory.getTablesNotFinished()));
 		}
 		else if(tablesLeftCount == 0)
 		{
@@ -365,9 +366,14 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	 */
 	private Behavior<Protocol> onCheckTbl(CheckTblMsg msg)
 	{
-		// TODO Kamil -
+		// TODO Kamil
 		if(Arrays.equals(msg._tableIds, _memory.getTablesNotFinished()))
-			getContext().getLog().info("Oh oh, last table is not responding...");
+		{
+			StringBuilder tables = new StringBuilder();
+			for(int tableId : msg._tableIds)
+				tables.append(tableId).append(" ");
+			getContext().getLog().info("Oh oh, table(s) not responding: " + tables);
+		}
 
 		return this;
 	}
@@ -613,7 +619,9 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 			_memory.setNormalTables(getNormalTableIds(_sudoku));
 			if (!_sudoku.equals(_prevSudoku))
 			{
-				_prevSudoku.setBoard(_sudoku.getBoard());
+				//_sudoku.printNatural();			// TODO delte it
+				//_prevSudoku.setBoard(_sudoku.getBoard());
+				_prevSudoku = new Sudoku(_sudoku);
 				_memory.reset();
 				prepareForNewSmallIterationAndRun();
 			}

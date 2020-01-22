@@ -6,9 +6,7 @@ import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Agent that interprets development of the playing agents and rewards them. Singleton.
@@ -200,7 +198,11 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		this._parent = createMsg._replyTo;
 		this._players = new HashMap<>();
 		this._tables = new HashMap<>();
-		this._memory = new TeacherMemory(_sudoku.getPlayerCount(), _sudoku.getTableCount(), _sudoku.getEmptyFieldsCount());
+		this._memory = new TeacherMemory(
+				_sudoku.getPlayerCount(),
+				_sudoku.getTableCount(),
+				getNormalTableIds(this._sudoku)
+		);
 		this._prevSudoku = new Sudoku(this._sudoku);
 		this._inspectedDigits = new HashMap<>();
 		this._timer = getContext().spawn(
@@ -331,11 +333,10 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	{
 		_sudoku.insertDigit(msg._position.x, msg._position.y, msg._digit);
 		final int tablesLeftCount =  _memory.addTableFinished(msg._tableId);
-		getContext().getLog().info("" + tablesLeftCount);
-		if(tablesLeftCount == 1)
+		if(tablesLeftCount >= 1)
 		{
 			_timer.tell(new Timer.RemindToCheckTablesMsg(
-					getContext().getSelf(), 3, _memory.getTablesNotFinished()));
+					getContext().getSelf(), 1, _memory.getTablesNotFinished()));
 		}
 		else if(tablesLeftCount == 0)
 		{
@@ -570,11 +571,6 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		return results;
 	}
 
-	/**
-	 *  Teacher commands its agents (by sending ResetMemoryMsg) in appropriate order to reset theirs memory.
-	 *  It should collect all messages in onTablePerformedMemoryReset and onPlayerPerformedMemoryReset,
-	 *  and call startNewIteration method on collecting the last one.
-	 */
 	private void prepareForNewSmallIterationAndRun()
 	{
 		for(ActorRef<Table.Protocol> table : _tables.values())
@@ -612,10 +608,9 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	{
 		//Sudoku newSolution = new Sudoku(_sudoku);
 		//_parent.tell(new SudokuSupervisor.IterationFinishedMsg(newSolution));
-		final int emptyFieldsCount = _sudoku.getEmptyFieldsCount();
-		if (emptyFieldsCount != 0)
+		if (_sudoku.getEmptyFieldsCount() != 0)
 		{
-			_memory.setMaxTableFinishedCount(emptyFieldsCount);
+			_memory.setNormalTables(getNormalTableIds(_sudoku));
 			if (!_sudoku.equals(_prevSudoku))
 			{
 				_prevSudoku.setBoard(_sudoku.getBoard());
@@ -637,5 +632,17 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 			Sudoku newSolution = new Sudoku(_sudoku);
 			_parent.tell(new SudokuSupervisor.IterationFinishedMsg(newSolution));
 		}
+	}
+
+	/** Returns tableIds only for tables that are responsible for not hardcoded fields. */
+	private HashSet<Integer> getNormalTableIds(Sudoku sudoku)
+	{
+		final HashSet<Integer> normalTableIds = new HashSet<>();
+		for(int y = 0, tableId = 0; y < sudoku.getSize(); ++y)
+			for(int x = 0; x < sudoku.getSize(); ++x, ++tableId)
+				if(sudoku.getDigit(x, y) == 0)
+					normalTableIds.add(tableId);
+
+		return normalTableIds;
 	}
 }

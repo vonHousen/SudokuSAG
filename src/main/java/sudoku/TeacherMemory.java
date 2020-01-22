@@ -1,6 +1,7 @@
 package sudoku;
 
-import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 public class TeacherMemory
 {
@@ -8,34 +9,30 @@ public class TeacherMemory
 
     final private int _maxTableCount;
 
-    private int _maxTableFinishedCount;
-
     private int _playerResetCount;
 
     private int _tableResetCount;
 
-    private int _tablesNotFinishedCount;
+    final private Set<Integer> _tablesNotFinished;
 
-    private boolean[] _tablesNotFinished;
+    final private Set<Integer> _normalTables;
 
-    public TeacherMemory(int playerCount, int tableCount, int finishedCount)
+    public TeacherMemory(int playerCount, int tableCount, HashSet<Integer> normalTables)
     {
         this._maxPlayerCount = playerCount;
         this._maxTableCount = tableCount;
-        this._maxTableFinishedCount = finishedCount;
         this._playerResetCount = 0;
         this._tableResetCount = 0;
-        this._tablesNotFinishedCount = tableCount;
-        this._tablesNotFinished = new boolean[tableCount];
-        for(int i = 0; i < _maxTableCount; ++i)
-        {
-            _tablesNotFinished[i] = true;
-        }
+        this._tablesNotFinished = new HashSet<>();
+        _tablesNotFinished.addAll(normalTables);
+        this._normalTables = new HashSet<>();
+        _normalTables.addAll(normalTables);
     }
 
-    public void setMaxTableFinishedCount(int count)
+    public void setNormalTables(HashSet<Integer> normalTables)
     {
-        _maxTableFinishedCount = count;
+        _normalTables.clear();
+        _normalTables.addAll(normalTables);
     }
 
     private boolean allResetsCollected()
@@ -57,16 +54,16 @@ public class TeacherMemory
 
     public int addTableFinished(int tableId)
     {
-        _tablesNotFinished[tableId] = false;
-        return --_tablesNotFinishedCount;
+        _tablesNotFinished.remove(tableId);
+        return _tablesNotFinished.size();
     }
 
     public int[] getTablesNotFinished()
     {
-        final int[] notFinishedTableIds = new int[_tablesNotFinishedCount];
-        for(int tableId = 0, j = 0; tableId < _maxTableCount; tableId++)
-            if(_tablesNotFinished[tableId])
-                notFinishedTableIds[j++] = tableId;
+        final int[] notFinishedTableIds = new int[_tablesNotFinished.size()];
+        int i = 0;
+        for(int notFinishedTableId : _tablesNotFinished)
+            notFinishedTableIds[i++] = notFinishedTableId;
 
         return notFinishedTableIds;
     }
@@ -75,8 +72,7 @@ public class TeacherMemory
     {
         _playerResetCount = 0;
         _tableResetCount = 0;
-        _tablesNotFinishedCount = _maxTableCount;
-        for(int i = 0; i < _maxTableCount; ++i)
-            _tablesNotFinished[i] = true;
+        _tablesNotFinished.clear();
+        _tablesNotFinished.addAll(_normalTables);
     }
 }

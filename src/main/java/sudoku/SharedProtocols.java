@@ -14,4 +14,7 @@ public class SharedProtocols
 
 	/** Protocol for starting new iteration by the Teacher, affecting both the Player and the Table. */
 	public interface NewIterationProtocol {}
+
+	/** Protocol for rewarding Players by the Teacher. */
+	public interface AssessmentProtocol {}
 }

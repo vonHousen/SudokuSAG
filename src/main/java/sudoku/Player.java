@@ -161,6 +161,18 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	public static class ConsentToStartIterationMsg implements Protocol, SharedProtocols.NewIterationProtocol
 	{}
 
+	/** Message from the Teacher granting the Player reward (or punishment if negative) for its choices. */
+	public static class GrantRewardMsg implements Protocol, SharedProtocols.AssessmentProtocol
+	{
+		public final float _rewardValue;
+		public final ActorRef<Teacher.Protocol> _replyTo;
+		public GrantRewardMsg(float rewardValue, ActorRef<Teacher.Protocol> replyTo)
+		{
+			this._rewardValue = rewardValue;
+			this._replyTo = replyTo;
+		}
+	}
+
 
 	/** Custom exception thrown when excessive Table is about to be registered to this Player */
 	public static class IncorrectRegisterException extends RuntimeException
@@ -275,6 +287,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 				.onMessage(ResetMemoryMsg.class, this::onResetMemory)
 				.onMessage(ConsentToStartIterationMsg.class, this::onConsentToStartIteration)
 				.onMessage(ResetMemorySoftlyMsg.class, this::onResetMemorySoftly)
+				.onMessage(GrantRewardMsg.class, this::onGrantReward)
 				.onSignal(PostStop.class, signal -> onPostStop())
 				.build();
 	}
@@ -523,6 +536,20 @@ public class Player extends AbstractBehavior<Player.Protocol>
 				sendBestOffer(tableIndex);
 			}
 		}
+
+		return this;
+	}
+
+	/**
+	 * Player receives reward or punishment from the Teacher for its choices during the last iteration.
+	 * Reward has an impact on Player's future choices.
+	 * @param msg	reward from the Teacher
+	 * @return		wrapped Behavior
+	 */
+	private Behavior<Protocol> onGrantReward(GrantRewardMsg msg)
+	{
+		// TODO Emil - zapisywanie nagrody
+		msg._replyTo.tell(new Teacher.RewardReceivedMsg(_playerId));
 
 		return this;
 	}

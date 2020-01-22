@@ -1,5 +1,7 @@
 package sudoku;
 
+import java.util.ArrayList;
+
 public class TeacherMemory
 {
     final private int _maxPlayerCount;
@@ -12,7 +14,9 @@ public class TeacherMemory
 
     private int _tableResetCount;
 
-    private int _tableFinishedCount;
+    private int _tablesNotFinishedCount;
+
+    private boolean[] _tablesNotFinished;
 
     public TeacherMemory(int playerCount, int tableCount, int finishedCount)
     {
@@ -21,7 +25,12 @@ public class TeacherMemory
         this._maxTableFinishedCount = finishedCount;
         this._playerResetCount = 0;
         this._tableResetCount = 0;
-        this._tableFinishedCount = 0;
+        this._tablesNotFinishedCount = tableCount;
+        this._tablesNotFinished = new boolean[tableCount];
+        for(int i = 0; i < _maxTableCount; ++i)
+        {
+            _tablesNotFinished[i] = true;
+        }
     }
 
     public void setMaxTableFinishedCount(int count)
@@ -46,16 +55,28 @@ public class TeacherMemory
         return allResetsCollected();
     }
 
-    public boolean addTableFinished()
+    public int addTableFinished(int tableId)
     {
-        ++_tableFinishedCount;
-        return _tableFinishedCount == _maxTableFinishedCount;
+        _tablesNotFinished[tableId] = false;
+        return --_tablesNotFinishedCount;
+    }
+
+    public int[] getTablesNotFinished()
+    {
+        final int[] notFinishedTableIds = new int[_tablesNotFinishedCount];
+        for(int tableId = 0, j = 0; tableId < _maxTableCount; tableId++)
+            if(_tablesNotFinished[tableId])
+                notFinishedTableIds[j++] = tableId;
+
+        return notFinishedTableIds;
     }
 
     void reset()
     {
         _playerResetCount = 0;
         _tableResetCount = 0;
-        _tableFinishedCount = 0;
+        _tablesNotFinishedCount = _maxTableCount;
+        for(int i = 0; i < _maxTableCount; ++i)
+            _tablesNotFinished[i] = true;
     }
 }

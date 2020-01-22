@@ -1,13 +1,12 @@
 package sudoku;
 
-import akka.actor.typed.ActorRef;
-import akka.actor.typed.Behavior;
-import akka.actor.typed.PostStop;
-import akka.actor.typed.PreRestart;
+import akka.actor.typed.*;
 import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
+
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -180,6 +179,8 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	private Map<Integer, Integer> _inspectedDigits;
 	/** Inspector's reference. */
 	private ActorRef<Sudoku> _inspector;
+	/** Teacher's own Timer. */
+	private ActorRef<Timer.Protocol> _timer;
 
 	/**
 	 * Public method that calls private constructor.
@@ -202,6 +203,10 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		this._memory = new TeacherMemory(_sudoku.getPlayerCount(), _sudoku.getTableCount(), _sudoku.getEmptyFieldsCount());
 		this._prevSudoku = new Sudoku(this._sudoku);
 		this._inspectedDigits = new HashMap<>();
+		this._timer = getContext().spawn(
+				Behaviors.supervise(
+						Timer.create()
+				).onFailure(SupervisorStrategy.restart()), "Teachers-timer");
 		context.getLog().info("Teacher created");			// left for debugging only
 
 		spawnPlayers();
@@ -325,7 +330,14 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	private Behavior<Protocol> onTableFinishedNegotiations(TableFinishedNegotiationsMsg msg)
 	{
 		_sudoku.insertDigit(msg._position.x, msg._position.y, msg._digit);
-		if (_memory.addTableFinished())
+		final int tablesLeftCount =  _memory.addTableFinished(msg._tableId);
+		getContext().getLog().info("" + tablesLeftCount);
+		if(tablesLeftCount == 1)
+		{
+			_timer.tell(new Timer.RemindToCheckTablesMsg(
+					getContext().getSelf(), 3, _memory.getTablesNotFinished()));
+		}
+		else if(tablesLeftCount == 0)
 		{
 			returnNewSolution();
 		}
@@ -352,7 +364,9 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	 */
 	private Behavior<Protocol> onCheckTbl(CheckTblMsg msg)
 	{
-		// TODO Kamil - zbieranie potwierdzeń i startowanie dużej iteracji
+		// TODO Kamil -
+		if(Arrays.equals(msg._tableIds, _memory.getTablesNotFinished()))
+			getContext().getLog().info("Oh oh, last table is not responding...");
 
 		return this;
 	}

@@ -143,6 +143,17 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		}
 	}
 
+	/** Reply from the Player after granting it new reward. */
+	public static class RewardReceivedMsg implements Protocol, SharedProtocols.AssessmentProtocol
+	{
+		public final int _playerId;
+		public RewardReceivedMsg(int playerId)
+		{
+			this._playerId = playerId;
+		}
+	}
+
+
 	/** Sudoku riddle to be solved. */
 	private final Sudoku _sudoku;
 	/** Parent agent */
@@ -204,6 +215,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 				.onMessage(TablePerformedMemoryResetMsg.class, this::onTablePerformedMemoryReset)
 				.onMessage(PlayerPerformedMemoryResetMsg.class, this::onPlayerPerformedMemoryReset)
 				.onMessage(TableFinishedNegotiationsMsg.class, this::onTableFinishedNegotiations)
+				.onMessage(RewardReceivedMsg.class, this::onRewardReceived)
 				.onSignal(PreRestart.class, signal -> onPreRestart())
 				.onSignal(PostStop.class, signal -> onPostStop())
 				.build();
@@ -306,6 +318,19 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		{
 			returnNewSolution();
 		}
+		return this;
+	}
+
+	/**
+	 * Teacher collects messages reporting receiving rewards.
+	 * When collected last message - it is ready for new big iteration.
+	 * @param msg	message confirming reception of a reward
+	 * @return 		wrapped Behavior
+	 */
+	private Behavior<Protocol> onRewardReceived(RewardReceivedMsg msg)
+	{
+		// TODO Emil - zbieranie potwierdzeń i startowanie dużej iteracji
+
 		return this;
 	}
 

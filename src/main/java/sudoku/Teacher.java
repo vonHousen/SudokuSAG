@@ -153,6 +153,16 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		}
 	}
 
+	/** Reply from the Timer, reminding to check if tables are sill alive. */
+	public static class CheckTblMsg implements Protocol, SharedProtocols.ValidationProtocol
+	{
+		public final int[] _tableIds;
+		public CheckTblMsg(int[] tableIds)
+		{
+			this._tableIds = tableIds;
+		}
+	}
+
 
 	/** Sudoku riddle to be solved. */
 	private final Sudoku _sudoku;
@@ -216,6 +226,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 				.onMessage(PlayerPerformedMemoryResetMsg.class, this::onPlayerPerformedMemoryReset)
 				.onMessage(TableFinishedNegotiationsMsg.class, this::onTableFinishedNegotiations)
 				.onMessage(RewardReceivedMsg.class, this::onRewardReceived)
+				.onMessage(CheckTblMsg.class, this::onCheckTbl)
 				.onSignal(PreRestart.class, signal -> onPreRestart())
 				.onSignal(PostStop.class, signal -> onPostStop())
 				.build();
@@ -330,6 +341,18 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	private Behavior<Protocol> onRewardReceived(RewardReceivedMsg msg)
 	{
 		// TODO Emil - zbieranie potwierdzeń i startowanie dużej iteracji
+
+		return this;
+	}
+
+	/**
+	 * When Teacher got CheckTblMsg message but still mentioned Tables are silent, they are treated dead.
+	 * @param msg	reminding message
+	 * @return 		wrapped Behavior
+	 */
+	private Behavior<Protocol> onCheckTbl(CheckTblMsg msg)
+	{
+		// TODO Kamil - zbieranie potwierdzeń i startowanie dużej iteracji
 
 		return this;
 	}

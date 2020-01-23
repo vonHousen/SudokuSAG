@@ -332,19 +332,8 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	private Behavior<Protocol> onTableFinishedNegotiations(TableFinishedNegotiationsMsg msg)
 	{
 		_sudoku.insertDigit(msg._position.x, msg._position.y, msg._digit);
-		final int tablesLeftCount =  _memory.addTableFinished(msg._tableId);
-		//getContext().getLog().info("" + tablesLeftCount);		// TODO delete
-		if(tablesLeftCount < _tables.size()/4 && tablesLeftCount > 0)
-		{
-			_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
-					500, _memory.getTablesNotFinished()));
-		}
-		else if(tablesLeftCount == 0)
-		{
-			_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
-					0, null));
-			returnNewSolution();
-		}
+		afterTableFinished(msg._tableId);
+
 		return this;
 	}
 
@@ -368,10 +357,12 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	 */
 	private Behavior<Protocol> onTablesAreNotResponding(TablesAreNotRespondingMsg msg)
 	{
-		// TODO Kamil - zrobić reakcję na niedziałające stoliki
 		StringBuilder tables = new StringBuilder();
 		for(int tableId : msg._tableIds)
+		{
 			tables.append(tableId).append(" ");
+			afterTableFinished(tableId);
+		}
 		getContext().getLog().info("Oh oh, table(s) not responding: " + tables);
 
 		return this;
@@ -618,7 +609,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 			_memory.setNormalTables(getNormalTableIds(_sudoku));
 			if (!_sudoku.equals(_prevSudoku))
 			{
-				//_sudoku.printNatural();			// TODO delte it
+				//_sudoku.printNatural();			// TODO Kamil - delete it
 				//_prevSudoku.setBoard(_sudoku.getBoard());
 				_prevSudoku = new Sudoku(_sudoku);
 				_memory.reset();
@@ -626,7 +617,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 			}
 			else
 			{
-				// TODO New "big" iteration
+				// TODO Emil - New "big" iteration
 				//_sudoku.reset();
 				//prepareForNewBigIterationAndRun();
 
@@ -651,5 +642,23 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 					normalTableIds.add(tableId);
 
 		return normalTableIds;
+	}
+
+	/** Teacher marks Table as finished and checks if it was the last one - if so, calls returnNewSolution(). */
+	private void afterTableFinished(int tableId)
+	{
+		final int tablesLeftCount =  _memory.addTableFinished(tableId);
+		getContext().getLog().info("" + tablesLeftCount);		// TODO Kamil - delete
+		if(tablesLeftCount < _tables.size()/4 && tablesLeftCount > 0)
+		{
+			_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
+					200, _memory.getTablesNotFinished()));
+		}
+		else if(tablesLeftCount == 0)
+		{
+			_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
+					0, null));
+			returnNewSolution();
+		}
 	}
 }

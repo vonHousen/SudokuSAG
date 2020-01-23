@@ -6,7 +6,7 @@ import akka.actor.typed.*;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-public class TimerTest
+public class TimerManagerTest
 {
 	@ClassRule
 	public static final TestKitJunitResource testKit = new TestKitJunitResource();
@@ -16,8 +16,9 @@ public class TimerTest
 	{
 		TestProbe<Teacher.Protocol> dummyTeacher = testKit.createTestProbe();
 
-		ActorRef<Timer.Protocol> theTimer = testKit.spawn(Timer.create(), "timer1");
-		theTimer.tell(new Timer.RemindToCheckTablesMsg(dummyTeacher.getRef(), 1, new int[]{0,1}));
+		ActorRef<TimerManager.Protocol> theTimer = testKit.spawn(
+				TimerManager.create(new TimerManager.CreateMsg(dummyTeacher.getRef())), "timer1");
+		theTimer.tell(new TimerManager.RemindToCheckTablesMsg(500, new int[]{0,1}));
 		dummyTeacher.expectMessageClass(Teacher.CheckTblMsg.class);
 	}
 }

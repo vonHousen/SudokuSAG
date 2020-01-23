@@ -178,7 +178,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	/** Inspector's reference. */
 	private ActorRef<Sudoku> _inspector;
 	/** Teacher's own Timer. */
-	private ActorRef<Timer.Protocol> _timer;
+	private ActorRef<TimerManager.Protocol> _timer;
 
 	/**
 	 * Public method that calls private constructor.
@@ -207,7 +207,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		this._inspectedDigits = new HashMap<>();
 		this._timer = getContext().spawn(
 				Behaviors.supervise(
-						Timer.create()
+						TimerManager.create(new TimerManager.CreateMsg(getContext().getSelf()))
 				).onFailure(SupervisorStrategy.restart()), "Teachers-timer");
 		context.getLog().info("Teacher created");			// left for debugging only
 
@@ -336,8 +336,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		//getContext().getLog().info("" + tablesLeftCount);		// TODO delete
 		if(tablesLeftCount < 3 && tablesLeftCount > 0)
 		{
-			_timer.tell(new Timer.RemindToCheckTablesMsg(
-					getContext().getSelf(), 500, _memory.getTablesNotFinished()));
+			_timer.tell(new TimerManager.RemindToCheckTablesMsg(500, _memory.getTablesNotFinished()));
 		}
 		else if(tablesLeftCount == 0)
 		{

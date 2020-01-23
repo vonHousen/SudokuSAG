@@ -9,33 +9,45 @@ import akka.actor.typed.javadsl.Receive;
 
 
 /** Simple reactive agent that replies after some time. */
-public class Timer extends AbstractBehavior<Timer.Protocol>
+public class TimerManager extends AbstractBehavior<TimerManager.Protocol>
 {
 	/** Protocol interface for input messages. */
 	public interface Protocol {}
 
 	/** Message creating the agent. */
-	public static class CreateMsg implements Protocol {}
+	public static class CreateMsg implements Protocol
+	{
+		public final ActorRef<Teacher.Protocol> _parent;
+		public CreateMsg(ActorRef<Teacher.Protocol> parent)
+		{
+			this._parent = parent;
+		}
+	}
 
 	/** Message from the Teacher waking him up after passing given time to check if its Tables are still alive. */
 	public static class RemindToCheckTablesMsg implements Protocol, SharedProtocols.ValidationProtocol
 	{
-		public final ActorRef<Teacher.Protocol> _replyTo;
 		public final int _waitMilliseconds;
 		public final int[] _tableIds;
-		public RemindToCheckTablesMsg(ActorRef<Teacher.Protocol> replyTo, int waitMilliseconds, int[] tableIds)
+		public RemindToCheckTablesMsg(int waitMilliseconds, int[] tableIds)
 		{
-			this._replyTo = replyTo;
 			this._waitMilliseconds = waitMilliseconds;
 			this._tableIds = tableIds;
 		}
 	}
 
 
+	/** Parent - the only agent TimeManager replies to. */
+	private final ActorRef<Teacher.Protocol> _parent;
+
+	/** Table Ids requested to be checked on the last message. */
+	private int[] _latelyRequestedTableIds;		// TODO Kamil
+
 	/** Private constructor called only by CreateMsg. */
-	private Timer(ActorContext<Timer.Protocol> context)
+	private TimerManager(ActorContext<TimerManager.Protocol> context, CreateMsg msg)
 	{
 		super(context);
+		this._parent = msg._parent;
 	}
 
 	/**
@@ -43,9 +55,9 @@ public class Timer extends AbstractBehavior<Timer.Protocol>
 	 * Existence required by Akka.
 	 * @return wrapped Behavior
 	 */
-	public static Behavior<Timer.Protocol> create()
+	public static Behavior<TimerManager.Protocol> create(CreateMsg msg)
 	{
-		return Behaviors.setup(Timer::new);
+		return Behaviors.setup(context -> new TimerManager(context, msg));
 	}
 
 	/**
@@ -54,7 +66,7 @@ public class Timer extends AbstractBehavior<Timer.Protocol>
 	 * @return 		wrapped Behavior
 	 */
 	@Override
-	public Receive<Timer.Protocol> createReceive()
+	public Receive<TimerManager.Protocol> createReceive()
 	{
 		return newReceiveBuilder()
 				.onMessage(RemindToCheckTablesMsg.class, this::onRemindToCheckTables)
@@ -67,7 +79,7 @@ public class Timer extends AbstractBehavior<Timer.Protocol>
 	 * @param msg	request from the Teacher
 	 * @return 		wrapped Behavior
 	 */
-	private Behavior<Timer.Protocol> onRemindToCheckTables(RemindToCheckTablesMsg msg)
+	private Behavior<TimerManager.Protocol> onRemindToCheckTables(RemindToCheckTablesMsg msg)
 	{
 		try
 		{
@@ -78,7 +90,7 @@ public class Timer extends AbstractBehavior<Timer.Protocol>
 			getContext().getLog().info("Exception thrown while sleeping.");
 		}
 
-		msg._replyTo.tell(new Teacher.CheckTblMsg(msg._tableIds));
+		this._parent.tell(new Teacher.CheckTblMsg(msg._tableIds));
 		return this;
 	}
 }

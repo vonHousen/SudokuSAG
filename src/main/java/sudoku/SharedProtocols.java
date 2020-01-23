@@ -20,4 +20,7 @@ public class SharedProtocols
 
 	/** Protocol for agents' validation with help of the Timer agent. */
 	public interface ValidationProtocol {}
+
+	/** Protocol between TimerManager and Timers, used when some time is measured in parallel. */
+	public interface TimeMeasurementProtocol {}
 }

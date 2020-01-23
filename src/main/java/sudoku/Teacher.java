@@ -150,11 +150,11 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		}
 	}
 
-	/** Reply from the Timer, reminding to check if tables are sill alive. */
-	public static class CheckTblMsg implements Protocol, SharedProtocols.ValidationProtocol
+	/** Reply from the TimerManager, announcing that Teacher's tables are not responding. */
+	public static class TablesAreNotRespondingMsg implements Protocol, SharedProtocols.ValidationProtocol
 	{
 		public final int[] _tableIds;
-		public CheckTblMsg(int[] tableIds)
+		public TablesAreNotRespondingMsg(int[] tableIds)
 		{
 			this._tableIds = tableIds;
 		}
@@ -178,7 +178,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	/** Inspector's reference. */
 	private ActorRef<Sudoku> _inspector;
 	/** Teacher's own Timer. */
-	private ActorRef<TimerManager.Protocol> _timer;
+	private ActorRef<TimerManager.Protocol> _timerManager;
 
 	/**
 	 * Public method that calls private constructor.
@@ -205,10 +205,10 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		);
 		this._prevSudoku = new Sudoku(this._sudoku);
 		this._inspectedDigits = new HashMap<>();
-		this._timer = getContext().spawn(
+		this._timerManager = getContext().spawn(
 				Behaviors.supervise(
 						TimerManager.create(new TimerManager.CreateMsg(getContext().getSelf()))
-				).onFailure(SupervisorStrategy.restart()), "Teachers-timer");
+				).onFailure(SupervisorStrategy.restart()), "Teachers-TimerManager");
 		context.getLog().info("Teacher created");			// left for debugging only
 
 		spawnPlayers();
@@ -233,7 +233,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 				.onMessage(PlayerPerformedMemoryResetMsg.class, this::onPlayerPerformedMemoryReset)
 				.onMessage(TableFinishedNegotiationsMsg.class, this::onTableFinishedNegotiations)
 				.onMessage(RewardReceivedMsg.class, this::onRewardReceived)
-				.onMessage(CheckTblMsg.class, this::onCheckTbl)
+				.onMessage(TablesAreNotRespondingMsg.class, this::onTablesAreNotResponding)
 				.onSignal(PreRestart.class, signal -> onPreRestart())
 				.onSignal(PostStop.class, signal -> onPostStop())
 				.build();
@@ -334,12 +334,15 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		_sudoku.insertDigit(msg._position.x, msg._position.y, msg._digit);
 		final int tablesLeftCount =  _memory.addTableFinished(msg._tableId);
 		//getContext().getLog().info("" + tablesLeftCount);		// TODO delete
-		if(tablesLeftCount < 3 && tablesLeftCount > 0)
+		if(tablesLeftCount < _tables.size()/4 && tablesLeftCount > 0)
 		{
-			_timer.tell(new TimerManager.RemindToCheckTablesMsg(500, _memory.getTablesNotFinished()));
+			_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
+					500, _memory.getTablesNotFinished()));
 		}
 		else if(tablesLeftCount == 0)
 		{
+			_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
+					0, null));
 			returnNewSolution();
 		}
 		return this;
@@ -359,20 +362,17 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	}
 
 	/**
-	 * When Teacher got CheckTblMsg message but still mentioned Tables are silent, they are treated dead.
-	 * @param msg	reminding message
+	 * When Teacher got TablesAreNotRespondingMsg, mentioned Tables are treated dead.
+	 * @param msg	warning message
 	 * @return 		wrapped Behavior
 	 */
-	private Behavior<Protocol> onCheckTbl(CheckTblMsg msg)
+	private Behavior<Protocol> onTablesAreNotResponding(TablesAreNotRespondingMsg msg)
 	{
-		// TODO Kamil
-		if(Arrays.equals(msg._tableIds, _memory.getTablesNotFinished()))
-		{
-			StringBuilder tables = new StringBuilder();
-			for(int tableId : msg._tableIds)
-				tables.append(tableId).append(" ");
-			getContext().getLog().info("Oh oh, table(s) not responding: " + tables);
-		}
+		// TODO Kamil - zrobić reakcję na niedziałające stoliki
+		StringBuilder tables = new StringBuilder();
+		for(int tableId : msg._tableIds)
+			tables.append(tableId).append(" ");
+		getContext().getLog().info("Oh oh, table(s) not responding: " + tables);
 
 		return this;
 	}

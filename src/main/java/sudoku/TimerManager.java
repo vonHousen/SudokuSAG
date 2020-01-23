@@ -7,8 +7,7 @@ import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 
-
-/** Simple reactive agent that replies after some time. */
+/** Agent that manages Timers (in parallel), responding to the Teacher. */
 public class TimerManager extends AbstractBehavior<TimerManager.Protocol>
 {
 	/** Protocol interface for input messages. */
@@ -36,18 +35,34 @@ public class TimerManager extends AbstractBehavior<TimerManager.Protocol>
 		}
 	}
 
+	/** Message from the Timer announcing that given time has passed. */
+	public static class TimePassedMsg implements Protocol, SharedProtocols.TimeMeasurementProtocol
+	{
+		public final int _timerId;
+		public final ActorRef<Timer.Protocol> _replyTo;
+		public TimePassedMsg(int timerId, ActorRef<Timer.Protocol> replyTo)
+		{
+			this._timerId = timerId;
+			this._replyTo = replyTo;
+		}
+	}
+
 
 	/** Parent - the only agent TimeManager replies to. */
 	private final ActorRef<Teacher.Protocol> _parent;
 
+	/** Timers counter - it also represents the latest timerId. First timerId = 1. */
+	private int _lastTimerId;
+
 	/** Table Ids requested to be checked on the last message. */
-	private int[] _latelyRequestedTableIds;		// TODO Kamil
+	private int[] _latelyRequestedTableIds;
 
 	/** Private constructor called only by CreateMsg. */
 	private TimerManager(ActorContext<TimerManager.Protocol> context, CreateMsg msg)
 	{
 		super(context);
 		this._parent = msg._parent;
+		this._lastTimerId = 0;
 	}
 
 	/**
@@ -70,27 +85,47 @@ public class TimerManager extends AbstractBehavior<TimerManager.Protocol>
 	{
 		return newReceiveBuilder()
 				.onMessage(RemindToCheckTablesMsg.class, this::onRemindToCheckTables)
+				.onMessage(TimePassedMsg.class, this::onTimePassed)
 				.build();
 	}
 
 
 	/**
-	 * Timer reminds the Teacher of checking if its Tables are still alive.
+	 * TimerManager when asked by the Teacher, creates an agent - Timer to measure some time.
+	 * If the Teacher does not send another RemindToCheckTablesMsg until Timer ends clicking, it means that its Tables
+	 * are not responding. Note that Teacher can send _tableIds == null, meaning that it last Table had finished.
 	 * @param msg	request from the Teacher
 	 * @return 		wrapped Behavior
 	 */
 	private Behavior<TimerManager.Protocol> onRemindToCheckTables(RemindToCheckTablesMsg msg)
 	{
-		try
+		_latelyRequestedTableIds = msg._tableIds;
+		++_lastTimerId;
+		if(msg._tableIds != null)
 		{
-			Thread.sleep(msg._waitMilliseconds);
+			getContext().spawn(
+					Timer.create(
+							new Timer.CreateMsg(getContext().getSelf(), msg._waitMilliseconds, _lastTimerId)
+					),
+					"timer-" + _lastTimerId
+			);
 		}
-		catch (Exception e)
-		{
-			getContext().getLog().info("Exception thrown while sleeping.");
-		}
+		return this;
+	}
 
-		this._parent.tell(new Teacher.CheckTblMsg(msg._tableIds));
+	/**
+	 * TimerManager is informed that certain time has passed. If in this very moment TimerManager did not received
+	 * new reminder, it should reply with warning that Teacher's Tables are not responding. Timer, who sent this msg,
+	 * is no longer needed - can be removed.
+	 * @param msg	ping from the Timer
+	 * @return 		wrapped Behavior
+	 */
+	private Behavior<TimerManager.Protocol> onTimePassed(TimePassedMsg msg)
+	{
+		if(_lastTimerId == msg._timerId)	// if TimerManager did not received new reminder
+			_parent.tell(new Teacher.TablesAreNotRespondingMsg(_latelyRequestedTableIds));
+
+		getContext().stop(msg._replyTo);
 		return this;
 	}
 }

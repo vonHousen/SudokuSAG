@@ -652,7 +652,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		if(tablesLeftCount < _tables.size()/4 && tablesLeftCount > 0)
 		{
 			_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
-					200, _memory.getTablesNotFinished()));
+					100, _memory.getTablesNotFinished()));
 		}
 		else if(tablesLeftCount == 0)
 		{

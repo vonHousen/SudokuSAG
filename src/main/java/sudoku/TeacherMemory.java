@@ -54,7 +54,9 @@ public class TeacherMemory
 
     public int addTableFinished(int tableId)
     {
-        _tablesNotFinished.remove(tableId);
+        if(!_tablesNotFinished.remove(tableId)) // if table is not present in the NotFinished Set...
+            throw new RuntimeException("Table finished second time!");
+
         return _tablesNotFinished.size();
     }
 

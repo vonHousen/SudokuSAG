@@ -259,8 +259,6 @@ public class SudokuStartTest
 		Sudoku sudoku = createSudokuFromNaturalBoard(rank, naturalBoard);
 		Sudoku sudokuSolution = createSudokuFromNaturalBoard(rank, naturalSolution);
 
-		sudoku.printNatural();
-
 		// create the Supervisor & Teacher
 		TestProbe<SudokuSupervisor.Protocol> dummyGuardian = testKit.createTestProbe();
 		ActorRef<Teacher.Protocol> theTeacher = testKit.spawn(Teacher.create(
@@ -272,9 +270,9 @@ public class SudokuStartTest
 		Sudoku sudokuResults = results._newSolution;
 
 		// see how good are first iteration's results
-		//sudoku.printNatural();
-		//System.out.println();
-		//sudokuResults.printNatural();
+		sudoku.printNatural();
+		System.out.println();
+		sudokuResults.printNatural();
 
 		while(!sudokuResults.equals(sudokuSolution) && chances-- > 0)		// give another chance
 		{

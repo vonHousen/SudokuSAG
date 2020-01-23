@@ -8,6 +8,8 @@ import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
+
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -329,8 +331,10 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	 */
 	private Behavior<Protocol> onRewardReceived(RewardReceivedMsg msg)
 	{
-		// TODO Emil - zbieranie potwierdzeń i startowanie dużej iteracji
-
+		if (_memory.addPlayerRewarded())
+		{
+			prepareForNewBigIterationAndRun();
+		}
 		return this;
 	}
 
@@ -534,6 +538,109 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	}
 
 	/**
+	 * Calculate amount of base reward granted to Player at the end of big iteration.
+	 * This reward value doesn't take reward equalization into account (the actual reward sent to Player may differ).
+	 * @param emptyFieldsCount	count of empty fields left by Player
+	 * @param sudokuSize	size of sudoku side
+	 * @return	amount of reward (should be non-positive in most cases)
+	 */
+	private float getPenalty(int emptyFieldsCount, int sudokuSize)
+	{
+		return -emptyFieldsCount/(float)sudokuSize;
+	}
+
+	/**
+	 * Hands out rewards to players and properly starts a new big iteration (resets agents' states beforehand).
+	 * Teacher expects a reply from Players in onRewardReceived method.
+	 */
+	private void rewardPlayersAndRun()
+	{
+		final int sudokuSize = _sudoku.getSize();
+		final int playerCount = _sudoku.getPlayerCount();
+		final int[] emptyFieldsCount = new int[playerCount]; // Number of empty fields each player has
+		Arrays.fill(emptyFieldsCount, 0);
+		int filledCount = 0; // Count of filled fields in the entire sudoku
+		int playerId = 0;
+		// Count empty fields for each Player
+		// Column players
+		for(int x = 0; x < sudokuSize; ++x, ++playerId)
+		{
+			for(int y = 0; y < sudokuSize; ++y)
+			{
+				if (_sudoku.getDigit(x, y) == 0)
+				{
+					++emptyFieldsCount[playerId];
+				}
+				else
+				{
+					++filledCount;
+				}
+			}
+		}
+		// Row players
+		for(int y = 0; y < sudokuSize; ++y, ++playerId)
+		{
+			for(int x = 0; x < sudokuSize; ++x)
+			{
+				if (_sudoku.getDigit(x, y) == 0)
+				{
+					++emptyFieldsCount[playerId];
+				}
+				else
+				{
+					++filledCount;
+				}
+			}
+		}
+		// Block (square) players
+		final int sudokuRank = _sudoku.getRank();
+		for(int y = 0; y < sudokuSize; y += sudokuRank)
+		{
+			for(int x = 0; x < sudokuSize; x += sudokuRank, ++playerId)
+			{
+				for(int j = 0; j < sudokuRank; ++j)
+				{
+					for(int i = 0; i < sudokuRank; ++i)
+					{
+						if (_sudoku.getDigit(x, y) == 0)
+						{
+							++emptyFieldsCount[playerId];
+						}
+						else
+						{
+							++filledCount;
+						}
+					}
+				}
+			}
+		}
+		// Calculate rewards
+		final float[] playerRewardsUnit = new float[playerCount];
+		for (int i = 0; i < playerCount; ++i)
+		{
+			playerRewardsUnit[i] = getPenalty(emptyFieldsCount[i], sudokuSize);
+		}
+		// Normalize rewards
+		float rewardSum = 0;
+		for (int i = 0; i < playerCount; ++i)
+		{
+			rewardSum += playerRewardsUnit[i]*(sudokuSize - emptyFieldsCount[i]);
+		}
+		final float compensationFactor = -rewardSum/(3*filledCount);
+		ActorRef<Player.Protocol> playerRef;
+		for (int i = 0; i < playerCount; ++i)
+		{
+			playerRewardsUnit[i] += compensationFactor;
+			// Hand out rewards
+			playerRef = _players.getOrDefault(i, null);
+			if (playerRef != null)
+			{
+				playerRef.tell(new Player.GrantRewardMsg(playerRewardsUnit[i], getContext().getSelf()));
+			}
+		}
+	}
+
+	/**
 	 *  Teacher commands its agents (by sending ResetMemoryMsg) in appropriate order to reset theirs memory.
 	 *  It should collect all messages in onTablePerformedMemoryReset and onPlayerPerformedMemoryReset,
 	 *  and call startNewIteration method on collecting the last one.
@@ -573,26 +680,20 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	 */
 	private void returnNewSolution()
 	{
-		//Sudoku newSolution = new Sudoku(_sudoku);
-		//_parent.tell(new SudokuSupervisor.IterationFinishedMsg(newSolution));
 		final int emptyFieldsCount = _sudoku.getEmptyFieldsCount();
 		if (emptyFieldsCount != 0)
 		{
 			_memory.setMaxTableFinishedCount(emptyFieldsCount);
+			_memory.reset();
 			if (!_sudoku.equals(_prevSudoku))
 			{
 				_prevSudoku.setBoard(_sudoku.getBoard());
-				_memory.reset();
 				prepareForNewSmallIterationAndRun();
 			}
 			else
 			{
-				// TODO New "big" iteration
-				//_sudoku.reset();
-				//prepareForNewBigIterationAndRun();
-
-				Sudoku newSolution = new Sudoku(_sudoku);
-				_parent.tell(new SudokuSupervisor.IterationFinishedMsg(newSolution));
+				rewardPlayersAndRun();
+				_sudoku.reset();
 			}
 		}
 		else

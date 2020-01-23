@@ -8,6 +8,8 @@ public class TeacherMemory
 
     private int _maxTableFinishedCount;
 
+    private int _playerRewardedCount;
+
     private int _playerResetCount;
 
     private int _tableResetCount;
@@ -19,6 +21,7 @@ public class TeacherMemory
         this._maxPlayerCount = playerCount;
         this._maxTableCount = tableCount;
         this._maxTableFinishedCount = finishedCount;
+        this._playerRewardedCount = 0;
         this._playerResetCount = 0;
         this._tableResetCount = 0;
         this._tableFinishedCount = 0;
@@ -32,6 +35,12 @@ public class TeacherMemory
     private boolean allResetsCollected()
     {
         return _playerResetCount == _maxPlayerCount && _tableResetCount == _maxTableCount;
+    }
+
+    public boolean addPlayerRewarded()
+    {
+        ++_playerRewardedCount;
+        return _playerRewardedCount == _maxPlayerCount;
     }
 
     public boolean addPlayerReset()
@@ -54,6 +63,7 @@ public class TeacherMemory
 
     void reset()
     {
+        _playerRewardedCount = 0;
         _playerResetCount = 0;
         _tableResetCount = 0;
         _tableFinishedCount = 0;

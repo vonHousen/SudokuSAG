@@ -100,11 +100,11 @@ public class PlayerMemory
      * Add reward for current combination of digits.
      * @param amount 	reward added for each non-empty, mutable sudoku field
      */
-    public void rewardCurrentDigits(int amount)
+    public void rewardCurrentDigits(float amount)
     {
         for (int i = 0; i < _digitVector.length; ++i)
         {
-            if (_mask[i] == MaskState.NONE && _digitVector[i] != 0)
+            if (_mask[i] != MaskState.HARD && _digitVector[i] != 0)
             {
                 _rewards[i][_digitVector[i]-1] += amount;
             }

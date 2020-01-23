@@ -548,7 +548,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	 */
 	private Behavior<Protocol> onGrantReward(GrantRewardMsg msg)
 	{
-		// TODO Emil - zapisywanie nagrody
+		_memory.rewardCurrentDigits(msg._rewardValue);
 		msg._replyTo.tell(new Teacher.RewardReceivedMsg(_playerId));
 
 		return this;

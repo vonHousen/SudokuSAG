@@ -451,6 +451,9 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	private Behavior<Protocol> onNegotiationsPositive(NegotiationsPositiveMsg msg) // winner
 	{
 		final int approvedDigit = msg._approvedDigit;
+		if(approvedDigit == 0)
+			throw new RuntimeException("Table cannot accept zero");
+
 		final int tableIndex = _tables.getIndex(msg._tableId);
 		final ActorRef<Table.Protocol> tableRef = _tables.getAgent(tableIndex);
 		// Check if the digit was already accepted on a different Table
@@ -471,7 +474,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 
 	/**
 	 * Action taken when negotiations finished.
-	 * My send WithdrawOfferMsg to other Tables.
+	 * May send WithdrawOfferMsg to other Tables.
 	 * @param msg	message announcing final finish of the negotiations
 	 * @return 		wrapped Behavior
 	 */

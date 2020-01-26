@@ -286,14 +286,17 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	 */
 	private void withdrawAndInform(int digitColliding)
 	{
-		_memory.setBestOffer(0);
-		_memory.resetAcceptanceCount();
 		final ArrayList<Integer> playerIndices = _memory.withdrawDigit(digitColliding);
+		if(playerIndices.size() == 0)
+			return;
+
 		for (Integer n : playerIndices)
 		{
 			final ActorRef<Player.Protocol> tempPlayerRef = _players.getAgent(n);
 			tempPlayerRef.tell(new Player.RejectOfferMsg(digitColliding, getContext().getSelf(), _tableId));
 		}
+		_memory.setBestOffer(0);
+		_memory.resetAcceptanceCount();
 	}
 
 	/**

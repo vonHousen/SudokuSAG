@@ -611,7 +611,6 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 			_memory.setNormalTables(getNormalTableIds(_sudoku));
 			if (!_sudoku.equals(_prevSudoku))
 			{
-				//_sudoku.printNatural();			// TODO Kamil - delete it
 				//_prevSudoku.setBoard(_sudoku.getBoard());
 				_prevSudoku = new Sudoku(_sudoku);
 				_memory.reset();
@@ -650,11 +649,10 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	private void afterTableFinished(int tableId)
 	{
 		final int tablesLeftCount =  _memory.addTableFinished(tableId);
-		getContext().getLog().info("" + tablesLeftCount);		// TODO Kamil - delete
 		if(tablesLeftCount < _tables.size()/4 && tablesLeftCount > 0)
 		{
 			_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
-					100, _memory.getTablesNotFinished()));
+					200, _memory.getTablesNotFinished()));
 		}
 		else if(tablesLeftCount == 0)
 		{

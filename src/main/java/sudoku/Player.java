@@ -173,6 +173,10 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		}
 	}
 
+	/** Message received from the Table when agent is not responding. */
+	public static class WakeUpMsg implements Protocol, SharedProtocols.InspectionProtocol {}
+
+
 
 	/** Custom exception thrown when excessive Table is about to be registered to this Player */
 	public static class IncorrectRegisterException extends RuntimeException
@@ -288,6 +292,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 				.onMessage(ConsentToStartIterationMsg.class, this::onConsentToStartIteration)
 				.onMessage(ResetMemorySoftlyMsg.class, this::onResetMemorySoftly)
 				.onMessage(GrantRewardMsg.class, this::onGrantReward)
+				.onMessage(WakeUpMsg.class, this::onWakeUp)
 				.onSignal(PostStop.class, signal -> onPostStop())
 				.build();
 	}
@@ -551,6 +556,16 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		// TODO Emil - zapisywanie nagrody
 		msg._replyTo.tell(new Teacher.RewardReceivedMsg(_playerId));
 
+		return this;
+	}
+
+	/**
+	 * Player is being informed that is not enough responsive.
+	 * @param msg	message from the Table
+	 * @return		wrapped Behavior
+	 */
+	private Behavior<Protocol> onWakeUp(WakeUpMsg msg)
+	{
 		return this;
 	}
 

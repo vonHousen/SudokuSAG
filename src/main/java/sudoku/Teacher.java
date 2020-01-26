@@ -358,10 +358,12 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	private Behavior<Protocol> onTablesAreNotResponding(TablesAreNotRespondingMsg msg)
 	{
 		StringBuilder tables = new StringBuilder();
+		_sudoku.printNatural();
 		for(int tableId : msg._tableIds)
 		{
 			tables.append(tableId).append(" ");
 			afterTableFinished(tableId);
+			_tables.get(tableId).tell(new Table.WakeUpMsg());
 		}
 		getContext().getLog().info("Oh oh, table(s) not responding: " + tables);
 

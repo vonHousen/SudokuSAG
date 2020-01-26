@@ -132,6 +132,9 @@ public class Table extends AbstractBehavior<Table.Protocol>
 		}
 	}
 
+	/** Message received from the Teacher when agent is not responding. */
+	public static class WakeUpMsg implements Protocol, SharedProtocols.InspectionProtocol {}
+
 
 	/** Custom exception thrown when 4th Player is about to be registered to this table. */
 	public static class IncorrectRegisterException extends RuntimeException
@@ -193,6 +196,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 				.onMessage(WithdrawOfferMsg.class, this::onWithdrawOffer)
 				.onMessage(AcceptNegotiationsResultsMsg.class, this::onAcceptNegotiationsResults)
 				.onMessage(ResetMemoryMsg.class, this::onResetMemory)
+				.onMessage(WakeUpMsg.class, this::onWakeUp)
 				.build();
 	}
 
@@ -414,6 +418,20 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	{
 		_memory.reset();
 		msg._replyTo.tell(new Teacher.TablePerformedMemoryResetMsg(_tableId));
+		return this;
+	}
+
+	/**
+	 * Table is being informed that is not enough responsive.
+	 * @param msg	message from the Teacher
+	 * @return		wrapped Behavior
+	 */
+	private Behavior<Protocol> onWakeUp(WakeUpMsg msg)
+	{
+		for(int i=0; i < _players.getAgentCount(); i++)
+		{
+			_players.getAgent(i).tell(new Player.WakeUpMsg());
+		}
 		return this;
 	}
 }

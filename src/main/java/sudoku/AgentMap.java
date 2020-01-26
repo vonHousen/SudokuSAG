@@ -76,4 +76,9 @@ public class AgentMap<T>
     {
         return _agentCount == _agents.length;
     }
+
+    public int getAgentCount()
+    {
+        return _agentCount;
+    }
 }

@@ -161,13 +161,13 @@ public class SudokuStartTest
 				new Teacher.CreateMsg("teacher-" + NO, sudoku, dummyGuardian.getRef())
 		), "test-" + NO);
 
+		sudoku.printNatural();
+		System.out.println();
 		SudokuSupervisor.IterationFinishedMsg results =
 				(SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage();
 		Sudoku sudokuResults = results._newSolution;
 
 		// see how good are first iteration's results
-		sudoku.printNatural();
-		System.out.println();
 		sudokuResults.printNatural();
 
 		while(!sudokuResults.equals(sudokuSolution) && chances-- > 0)		// give another chance
@@ -208,13 +208,13 @@ public class SudokuStartTest
 				new Teacher.CreateMsg("teacher-" + NO, sudoku, dummyGuardian.getRef())
 		), "test-" + NO);
 
+		sudoku.printNatural();
+		System.out.println();
 		SudokuSupervisor.IterationFinishedMsg results =
 				(SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage();
 		Sudoku sudokuResults = results._newSolution;
 
 		// see how good are first iteration's results
-		sudoku.printNatural();
-		System.out.println();
 		sudokuResults.printNatural();
 
 		while(!sudokuResults.equals(sudokuSolution) && chances-- > 0)		// give another chance

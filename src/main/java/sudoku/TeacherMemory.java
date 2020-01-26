@@ -1,12 +1,13 @@
 package sudoku;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class TeacherMemory
 {
     final private int _maxPlayerCount;
 
     final private int _maxTableCount;
-
-    private int _maxTableFinishedCount;
 
     private int _playerRewardedCount;
 
@@ -14,22 +15,27 @@ public class TeacherMemory
 
     private int _tableResetCount;
 
-    private int _tableFinishedCount;
+    final private Set<Integer> _tablesNotFinished;
 
-    public TeacherMemory(int playerCount, int tableCount, int finishedCount)
+    final private Set<Integer> _normalTables;
+
+    public TeacherMemory(int playerCount, int tableCount, HashSet<Integer> normalTables)
     {
         this._maxPlayerCount = playerCount;
         this._maxTableCount = tableCount;
-        this._maxTableFinishedCount = finishedCount;
         this._playerRewardedCount = 0;
         this._playerResetCount = 0;
         this._tableResetCount = 0;
-        this._tableFinishedCount = 0;
+        this._tablesNotFinished = new HashSet<>();
+        _tablesNotFinished.addAll(normalTables);
+        this._normalTables = new HashSet<>();
+        _normalTables.addAll(normalTables);
     }
 
-    public void setMaxTableFinishedCount(int count)
+    public void setNormalTables(HashSet<Integer> normalTables)
     {
-        _maxTableFinishedCount = count;
+        _normalTables.clear();
+        _normalTables.addAll(normalTables);
     }
 
     private boolean allResetsCollected()
@@ -55,10 +61,22 @@ public class TeacherMemory
         return allResetsCollected();
     }
 
-    public boolean addTableFinished()
+    public int addTableFinished(int tableId)
     {
-        ++_tableFinishedCount;
-        return _tableFinishedCount == _maxTableFinishedCount;
+        if(!_tablesNotFinished.remove(tableId)) // if table is not present in the NotFinished Set...
+            throw new RuntimeException("Table finished second time!");
+
+        return _tablesNotFinished.size();
+    }
+
+    public int[] getTablesNotFinished()
+    {
+        final int[] notFinishedTableIds = new int[_tablesNotFinished.size()];
+        int i = 0;
+        for(int notFinishedTableId : _tablesNotFinished)
+            notFinishedTableIds[i++] = notFinishedTableId;
+
+        return notFinishedTableIds;
     }
 
     void reset()
@@ -66,6 +84,7 @@ public class TeacherMemory
         _playerRewardedCount = 0;
         _playerResetCount = 0;
         _tableResetCount = 0;
-        _tableFinishedCount = 0;
+        _tablesNotFinished.clear();
+        _tablesNotFinished.addAll(_normalTables);
     }
 }

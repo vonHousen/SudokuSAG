@@ -217,6 +217,9 @@ public class TableMemory
                 bestDigit = offerRef._digit;
             }
         }
+
+        if(bestDigit == 0)
+            throw new RuntimeException("Cannot choose 0!");
         _bestOffer = bestDigit;
     }
 

@@ -1,17 +1,12 @@
 package sudoku;
 
-import akka.actor.typed.ActorRef;
-import akka.actor.typed.Behavior;
-import akka.actor.typed.PostStop;
-import akka.actor.typed.PreRestart;
+import akka.actor.typed.*;
 import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Agent that interprets development of the playing agents and rewards them. Singleton.
@@ -155,6 +150,16 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		}
 	}
 
+	/** Reply from the TimerManager, announcing that Teacher's tables are not responding. */
+	public static class TablesAreNotRespondingMsg implements Protocol, SharedProtocols.ValidationProtocol
+	{
+		public final int[] _tableIds;
+		public TablesAreNotRespondingMsg(int[] tableIds)
+		{
+			this._tableIds = tableIds;
+		}
+	}
+
 
 	/** Sudoku riddle to be solved. */
 	private final Sudoku _sudoku;
@@ -167,11 +172,13 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	/** Data structure for counting acknowledgement messages from Players and Tables. */
 	private TeacherMemory _memory;
 	/** Sudoku solution from the previous iteration */
-	private final Sudoku _prevSudoku;
+	private Sudoku _prevSudoku;
 	/** HashMap for inspected digits. Key: tableId, Value: inspectedDigit. */
 	private Map<Integer, Integer> _inspectedDigits;
 	/** Inspector's reference. */
 	private ActorRef<Sudoku> _inspector;
+	/** Teacher's own Timer. */
+	private ActorRef<TimerManager.Protocol> _timerManager;
 
 	/**
 	 * Public method that calls private constructor.
@@ -191,9 +198,17 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		this._parent = createMsg._replyTo;
 		this._players = new HashMap<>();
 		this._tables = new HashMap<>();
-		this._memory = new TeacherMemory(_sudoku.getPlayerCount(), _sudoku.getTableCount(), _sudoku.getEmptyFieldsCount());
+		this._memory = new TeacherMemory(
+				_sudoku.getPlayerCount(),
+				_sudoku.getTableCount(),
+				getNormalTableIds(this._sudoku)
+		);
 		this._prevSudoku = new Sudoku(this._sudoku);
 		this._inspectedDigits = new HashMap<>();
+		this._timerManager = getContext().spawn(
+				Behaviors.supervise(
+						TimerManager.create(new TimerManager.CreateMsg(getContext().getSelf()))
+				).onFailure(SupervisorStrategy.restart()), "Teachers-TimerManager");
 		context.getLog().info("Teacher created");			// left for debugging only
 
 		spawnPlayers();
@@ -218,6 +233,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 				.onMessage(PlayerPerformedMemoryResetMsg.class, this::onPlayerPerformedMemoryReset)
 				.onMessage(TableFinishedNegotiationsMsg.class, this::onTableFinishedNegotiations)
 				.onMessage(RewardReceivedMsg.class, this::onRewardReceived)
+				.onMessage(TablesAreNotRespondingMsg.class, this::onTablesAreNotResponding)
 				.onSignal(PreRestart.class, signal -> onPreRestart())
 				.onSignal(PostStop.class, signal -> onPostStop())
 				.build();
@@ -316,10 +332,8 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	private Behavior<Protocol> onTableFinishedNegotiations(TableFinishedNegotiationsMsg msg)
 	{
 		_sudoku.insertDigit(msg._position.x, msg._position.y, msg._digit);
-		if (_memory.addTableFinished())
-		{
-			returnNewSolution();
-		}
+		afterTableFinished(msg._tableId);
+
 		return this;
 	}
 
@@ -335,6 +349,26 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		{
 			prepareForNewBigIterationAndRun();
 		}
+		return this;
+	}
+
+	/**
+	 * When Teacher got TablesAreNotRespondingMsg, mentioned Tables are treated dead.
+	 * @param msg	warning message
+	 * @return 		wrapped Behavior
+	 */
+	private Behavior<Protocol> onTablesAreNotResponding(TablesAreNotRespondingMsg msg)
+	{
+		StringBuilder tables = new StringBuilder();
+		_sudoku.printNatural();
+		for(int tableId : msg._tableIds)
+		{
+			tables.append(tableId).append(" ");
+			afterTableFinished(tableId);
+			_tables.get(tableId).tell(new Table.WakeUpMsg());
+		}
+		getContext().getLog().info("Oh oh, table(s) not responding: " + tables);
+
 		return this;
 	}
 
@@ -680,14 +714,16 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	 */
 	private void returnNewSolution()
 	{
-		final int emptyFieldsCount = _sudoku.getEmptyFieldsCount();
-		if (emptyFieldsCount != 0)
+		//Sudoku newSolution = new Sudoku(_sudoku);
+		//_parent.tell(new SudokuSupervisor.IterationFinishedMsg(newSolution));
+		if (_sudoku.getEmptyFieldsCount() != 0)
 		{
-			_memory.setMaxTableFinishedCount(emptyFieldsCount);
-			_memory.reset();
+			_memory.setNormalTables(getNormalTableIds(_sudoku));
 			if (!_sudoku.equals(_prevSudoku))
 			{
-				_prevSudoku.setBoard(_sudoku.getBoard());
+				//_prevSudoku.setBoard(_sudoku.getBoard());
+				_prevSudoku = new Sudoku(_sudoku);
+				_memory.reset();
 				prepareForNewSmallIterationAndRun();
 			}
 			else
@@ -700,6 +736,35 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		{
 			Sudoku newSolution = new Sudoku(_sudoku);
 			_parent.tell(new SudokuSupervisor.IterationFinishedMsg(newSolution));
+		}
+	}
+
+	/** Returns tableIds only for tables that are responsible for not hardcoded fields. */
+	private HashSet<Integer> getNormalTableIds(Sudoku sudoku)
+	{
+		final HashSet<Integer> normalTableIds = new HashSet<>();
+		for(int y = 0, tableId = 0; y < sudoku.getSize(); ++y)
+			for(int x = 0; x < sudoku.getSize(); ++x, ++tableId)
+				if(sudoku.getDigit(x, y) == 0)
+					normalTableIds.add(tableId);
+
+		return normalTableIds;
+	}
+
+	/** Teacher marks Table as finished and checks if it was the last one - if so, calls returnNewSolution(). */
+	private void afterTableFinished(int tableId)
+	{
+		final int tablesLeftCount =  _memory.addTableFinished(tableId);
+		if(tablesLeftCount < _tables.size()/4 && tablesLeftCount > 0)
+		{
+			_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
+					200, _memory.getTablesNotFinished()));
+		}
+		else if(tablesLeftCount == 0)
+		{
+			_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
+					0, null));
+			returnNewSolution();
 		}
 	}
 }

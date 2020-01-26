@@ -173,6 +173,10 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		}
 	}
 
+	/** Message received from the Table when agent is not responding. */
+	public static class WakeUpMsg implements Protocol, SharedProtocols.InspectionProtocol {}
+
+
 
 	/** Custom exception thrown when excessive Table is about to be registered to this Player */
 	public static class IncorrectRegisterException extends RuntimeException
@@ -288,6 +292,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 				.onMessage(ConsentToStartIterationMsg.class, this::onConsentToStartIteration)
 				.onMessage(ResetMemorySoftlyMsg.class, this::onResetMemorySoftly)
 				.onMessage(GrantRewardMsg.class, this::onGrantReward)
+				.onMessage(WakeUpMsg.class, this::onWakeUp)
 				.onSignal(PostStop.class, signal -> onPostStop())
 				.build();
 	}
@@ -446,6 +451,9 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	private Behavior<Protocol> onNegotiationsPositive(NegotiationsPositiveMsg msg) // winner
 	{
 		final int approvedDigit = msg._approvedDigit;
+		if(approvedDigit == 0)
+			throw new RuntimeException("Table cannot accept zero");
+
 		final int tableIndex = _tables.getIndex(msg._tableId);
 		final ActorRef<Table.Protocol> tableRef = _tables.getAgent(tableIndex);
 		// Check if the digit was already accepted on a different Table
@@ -466,7 +474,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 
 	/**
 	 * Action taken when negotiations finished.
-	 * My send WithdrawOfferMsg to other Tables.
+	 * May send WithdrawOfferMsg to other Tables.
 	 * @param msg	message announcing final finish of the negotiations
 	 * @return 		wrapped Behavior
 	 */
@@ -551,6 +559,16 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		_memory.rewardCurrentDigits(msg._rewardValue);
 		msg._replyTo.tell(new Teacher.RewardReceivedMsg(_playerId));
 
+		return this;
+	}
+
+	/**
+	 * Player is being informed that is not enough responsive.
+	 * @param msg	message from the Table
+	 * @return		wrapped Behavior
+	 */
+	private Behavior<Protocol> onWakeUp(WakeUpMsg msg)
+	{
 		return this;
 	}
 

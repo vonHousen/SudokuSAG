@@ -270,4 +270,47 @@ public class SudokuStartTest
 		// 	sudokuResults.printNatural();
 		// }
 	}
+/*
+	@Test
+	public void test_8_ManySudoku()
+	{
+		int NO = 8;
+		int chances = 100;
+		int rank = 3;
+		int[][] naturalBoard = {
+				{0,0,0,0,0,0,0,0,0},
+				{0,0,0,0,0,0,0,0,0},
+				{0,0,0,0,0,0,0,0,0},
+				{0,0,0,0,0,0,0,0,0},
+				{0,0,0,0,0,0,0,0,0},
+				{0,0,0,0,0,0,0,0,0},
+				{0,0,0,0,0,0,0,0,0},
+				{0,0,0,0,0,0,0,0,0},
+				{0,0,0,0,0,0,0,0,0}
+		};
+		Sudoku sudoku = createSudokuFromNaturalBoard(rank, naturalBoard);
+
+		// create the Supervisor & Teacher
+		TestProbe<SudokuSupervisor.Protocol> dummyGuardian = testKit.createTestProbe();
+		ActorRef<Teacher.Protocol> theTeacher;
+
+		// sudoku.printNatural();
+		// System.out.println();
+		SudokuSupervisor.IterationFinishedMsg results;
+		Sudoku sudokuResults = new Sudoku(sudoku);
+
+		while(sudokuResults.getEmptyFieldsCount() > 0 && chances-- > 0)		// give another chance
+		{
+			theTeacher = testKit.spawn(Teacher.create(
+				new Teacher.CreateMsg("teacher-" + NO, sudoku, dummyGuardian.getRef())
+			), "test-" + NO + "-" + chances);
+			results = (SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage(Duration.ofSeconds(10));
+			sudokuResults = results._newSolution;
+			testKit.stop(theTeacher);
+			//System.out.println();
+			//sudokuResults.printNatural();
+		}
+	}
+
+ */
 }

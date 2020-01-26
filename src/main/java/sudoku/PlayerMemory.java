@@ -168,11 +168,10 @@ public class PlayerMemory
 
     public void setDigitColliding(int digit)
     {
-        --digit;
         final int sudokuSize = _digitVector.length;
         for (int i = 0; i < sudokuSize; ++i)
         {
-            _collisions[i][digit] = true;
+            _collisions[i][digit-1] = true;
         }
     }
 
@@ -224,7 +223,7 @@ public class PlayerMemory
             {
                 _collisions[i][j] = maskValue;
             }
-            if (maskValue)
+            if (maskValue && _digitVector[i] != 0)
             {
                 setDigitColliding(_digitVector[i]);
             }

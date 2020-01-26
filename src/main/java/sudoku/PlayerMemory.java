@@ -267,7 +267,7 @@ public class PlayerMemory
         // Temporarily fixate solved digits
         for (int i = 0; i < sudokuSize; ++i)
         {
-            if (_digitVector[i] != 0 && _mask[i] == MaskState.NONE)
+            if (_finished[i] && _digitVector[i] != 0 && _mask[i] == MaskState.NONE)
             {
                 _mask[i] = MaskState.SOFT;
             }

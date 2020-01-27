@@ -717,23 +717,29 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	{
 		//Sudoku newSolution = new Sudoku(_sudoku);
 		//_parent.tell(new SudokuSupervisor.IterationFinishedMsg(newSolution));
-		if (_sudoku.getEmptyFieldsCount() != 0)		// if sudoku is solved
+		if (_sudoku.getEmptyFieldsCount() != 0)		// if sudoku is not solved
 		{
-			_memory.setNormalTables(getNormalTableIds(_sudoku));
 			if (!_sudoku.equals(_prevSudoku))	// if previous solution is different from the current one
 			{
+				_memory.setNormalTables(getNormalTableIds(_sudoku));
+				_memory.reset();
+
 				//_prevSudoku.setBoard(_sudoku.getBoard());
 				_prevSudoku = new Sudoku(_sudoku);
-				_memory.reset();
 				prepareForNewSmallIterationAndRun();
 			}
 			else
 			{
+				final Sudoku tmpSudoku = new Sudoku(_sudoku);
+				tmpSudoku.reset();
+				_memory.setNormalTables(getNormalTableIds(tmpSudoku));
+				_memory.reset();
+
 				final Sudoku newSolution = new Sudoku(_sudoku);
 				_parent.tell(new SudokuSupervisor.IterationFinishedMsg(newSolution));
+
 				rewardPlayersAndRun();
 				_sudoku.reset();
-				_memory.reset();
 			}
 		}
 		else
@@ -755,20 +761,20 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		return normalTableIds;
 	}
 
-		/** Teacher marks Table as finished and checks if it was the last one - if so, calls returnNewSolution(). */
-		private void afterTableFinished(int tableId)
-		{
-		final int tablesLeftCount =  _memory.addTableFinished(tableId);
-		if(tablesLeftCount < _tables.size()/4 && tablesLeftCount > 0)
-		{
-			_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
-					200, _memory.getTablesNotFinished()));
-		}
-		else if(tablesLeftCount == 0)
-		{
-			_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
-					0, null));
-			returnNewSolution();
-		}
+	/** Teacher marks Table as finished and checks if it was the last one - if so, calls returnNewSolution(). */
+	private void afterTableFinished(int tableId)
+	{
+	final int tablesLeftCount =  _memory.addTableFinished(tableId);
+	if(tablesLeftCount < _tables.size()/4 && tablesLeftCount > 0)
+	{
+		_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
+				200, _memory.getTablesNotFinished()));
+	}
+	else if(tablesLeftCount == 0)
+	{
+		_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
+				0, null));
+		returnNewSolution();
+	}
 	}
 }

@@ -733,6 +733,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 				_parent.tell(new SudokuSupervisor.IterationFinishedMsg(newSolution));
 				rewardPlayersAndRun();
 				_sudoku.reset();
+				_memory.reset();
 			}
 		}
 		else

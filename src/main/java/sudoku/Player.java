@@ -579,7 +579,9 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	 */
 	private Player onPostStop()
 	{
-		//getContext().getLog().info("Player {} stopped", _playerId); 	// left for debugging only
+		for(int i = 0; i < _tables.getAgentCount(); i++)
+			_tables.getAgent(i).tell(new Table.PlayerIsDeadMsg());
+
 		return this;
 	}
 }

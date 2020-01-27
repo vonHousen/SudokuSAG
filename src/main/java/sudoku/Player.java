@@ -435,7 +435,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 						msg._tableId, _playerId, rejectedDigit, myDigit);
 			}
 		}
-		_memory.setAccepted(tableIndex, false);
+		_memory.setAccepted(tableIndex, 0);
 		_memory.setCollision(tableIndex, rejectedDigit);
 		sendBestOffer(tableIndex);
 
@@ -464,8 +464,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		}
 		else
 		{
-			_memory.setDigit(tableIndex, approvedDigit);
-			_memory.setAccepted(tableIndex, true);
+			_memory.setAccepted(tableIndex, approvedDigit);
 			tableRef.tell(new Table.AcceptNegotiationsResultsMsg(approvedDigit, getContext().getSelf(), _playerId));
 		}
 
@@ -484,20 +483,16 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		final int resultingDigit = msg._resultingDigit;
 		if (resultingDigit != 0) // Finished with non-empty field
 		{
-			final int myDigit = _memory.getDigit(tableIndex);
+			final int myDigit = _memory.getAccepted(tableIndex);
 			if (myDigit != resultingDigit)
 			{
 				throw new BadFinishException("Player finished negotiations with a different digit than Table.",
 						msg._tableId, _playerId, myDigit, resultingDigit);
 			}
-			_memory.finishNegotiations(tableIndex);
-			_memory.setDigitColliding(myDigit);
+			_memory.setDigitColliding(resultingDigit);
 		}
-		else
-		{
-			_memory.setDigit(tableIndex, 0);
-			_memory.finish(tableIndex);
-		}
+		_memory.finish(tableIndex);
+		_memory.setDigit(tableIndex, resultingDigit);
 
 		return this;
 	}

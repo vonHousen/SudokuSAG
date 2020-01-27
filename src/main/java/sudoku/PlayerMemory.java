@@ -18,8 +18,8 @@ public class PlayerMemory
     private final int[][] _digitPriorities;
     /** Array of Table internal indices ordered from highest to lowest priority. */
     private final int[] _tablePriorities;
-    /** Array of flags indicating that Player accepted offer on a Table. */
-    private final boolean[] _accepted;
+    /** Array of digits that Player accepted on a Table. Zero means the offer was not accepted. */
+    private final int[] _accepted;
     /** Array of flags indicating that a Table linked to a certain field ended negotiations. */
     private final boolean[] _finished;
 
@@ -61,15 +61,15 @@ public class PlayerMemory
         this._mask = new MaskState[sudokuSize];
         this._digitPriorities = new int[sudokuSize][sudokuSize];
         this._tablePriorities = new int[sudokuSize];
-        this._accepted = new boolean[sudokuSize];                       // By default initialized to false
+        this._accepted = new int[sudokuSize];                           // By default initialized to 0
         this._finished = new boolean[sudokuSize];                       // By default initialized to false
     }
 
     public int getSudokuSize() {return _digitVector.length;}
 
-    public boolean isAccepted(int n) {return _accepted[n];}
+    public int getAccepted(int n) {return _accepted[n];}
 
-    public void setAccepted(int n, boolean value) {_accepted[n] = value;}
+    public void setAccepted(int n, int value) {_accepted[n] = value;}
 
     public boolean isFinished(int n) {return _finished[n];}
 
@@ -78,17 +78,11 @@ public class PlayerMemory
         _finished[n] = true;
     }
 
-    public void finishNegotiations(int n)
-    {
-        _finished[n] = true;
-        _accepted[n] = false;
-    }
-
     public boolean alreadyAccepted(int digit)
     {
         for (int i = 0; i < _digitVector.length; ++i)
         {
-            if (_digitVector[i] == digit && (_accepted[i] || _finished[i]))
+            if (digit == _accepted[i])
             {
                 return true;
             }
@@ -231,7 +225,7 @@ public class PlayerMemory
             {
                 _digitVector[i] = 0;
             }
-            _accepted[i] = false;
+            _accepted[i] = 0;
             _finished[i] = maskValue;
         }
     }

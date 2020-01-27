@@ -434,16 +434,73 @@ public class SudokuStartTest
 		Sudoku sudokuResults = results._newSolution;
 
 		// see how good are first iteration's results
-		//sudoku.printNatural();
-		//System.out.println();
-		//sudokuResults.printNatural();
+		sudoku.printNatural();
+		System.out.println();
+		sudokuResults.printNatural();
 
 		while(!sudokuResults.equals(sudokuSolution) && chances-- > 0)		// give another chance
 		{
 			results = (SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage(Duration.ofSeconds(15));
 			sudokuResults = results._newSolution;
-			//System.out.println();
-			//sudokuResults.printNatural();
+			System.out.println();
+			sudokuResults.printNatural();
+		}
+
+		assertEquals(sudokuSolution, sudokuResults);
+	}
+
+	@Test
+	public void test_11_SolvingSudoku()
+	{
+		int NO = 11;
+		int chances = 100;
+		int rank = 3;
+		int[][] naturalBoard = {
+				{0,0,0,7,0,0,0,0,0},
+				{1,0,0,0,0,0,0,0,0},
+				{0,0,0,4,3,0,2,0,0},
+				{0,0,0,0,0,0,0,0,6},
+				{0,0,0,5,0,9,0,0,0},
+				{0,0,0,0,0,0,4,1,8},
+				{0,0,0,0,8,1,0,0,0},
+				{0,0,2,0,0,0,0,5,0},
+				{0,4,0,0,0,0,3,0,0}
+		};
+		int[][] naturalSolution = {
+				{2,6,4,7,1,5,8,3,9},
+				{1,3,7,8,9,2,6,4,5},
+				{5,9,8,4,3,6,2,7,1},
+				{4,2,3,1,7,8,5,9,6},
+				{8,1,6,5,4,9,7,2,3},
+				{7,5,9,6,2,3,4,1,8},
+				{3,7,5,2,8,1,9,6,4},
+				{9,8,2,3,6,4,1,5,7},
+				{6,4,1,9,5,7,3,8,2}
+		};
+		Sudoku sudoku = createSudokuFromNaturalBoard(rank, naturalBoard);
+		Sudoku sudokuSolution = createSudokuFromNaturalBoard(rank, naturalSolution);
+
+		// create the Supervisor & Teacher
+		TestProbe<SudokuSupervisor.Protocol> dummyGuardian = testKit.createTestProbe();
+		ActorRef<Teacher.Protocol> theTeacher = testKit.spawn(Teacher.create(
+				new Teacher.CreateMsg("teacher-" + NO, sudoku, dummyGuardian.getRef())
+		), "test-" + NO);
+
+		SudokuSupervisor.IterationFinishedMsg results =
+				(SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage(Duration.ofSeconds(10000));
+		Sudoku sudokuResults = results._newSolution;
+
+		// see how good are first iteration's results
+		sudoku.printNatural();
+		System.out.println();
+		sudokuResults.printNatural();
+
+		while(!sudokuResults.equals(sudokuSolution) && chances-- > 0)		// give another chance
+		{
+			results = (SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage(Duration.ofSeconds(10));
+			sudokuResults = results._newSolution;
+			System.out.println();
+			sudokuResults.printNatural();
 		}
 
 		assertEquals(sudokuSolution, sudokuResults);

@@ -19,6 +19,8 @@ public class TeacherMemory
 
     final private Set<Integer> _normalTables;
 
+    private Set<Integer> _tableIdsConsideredDead;
+
     public TeacherMemory(int playerCount, int tableCount, HashSet<Integer> normalTables)
     {
         this._maxPlayerCount = playerCount;
@@ -26,6 +28,7 @@ public class TeacherMemory
         this._playerRewardedCount = 0;
         this._playerResetCount = 0;
         this._tableResetCount = 0;
+        this._tableIdsConsideredDead = new HashSet<>();
         this._tablesNotFinished = new HashSet<>();
         _tablesNotFinished.addAll(normalTables);
         this._normalTables = new HashSet<>();
@@ -65,8 +68,9 @@ public class TeacherMemory
 
     public int addTableFinished(int tableId)
     {
-        if(!_tablesNotFinished.remove(tableId)) // if table is not present in the NotFinished Set...
-            throw new RuntimeException("Table finished second time!");
+        if(!_tableIdsConsideredDead.contains(tableId))
+            if(!_tablesNotFinished.remove(tableId))    // if table is not present in the NotFinished Set...
+                throw new RuntimeException("Table finished second time!");
 
         return _tablesNotFinished.size();
     }
@@ -88,5 +92,13 @@ public class TeacherMemory
         _tableResetCount = 0;
         _tablesNotFinished.clear();
         _tablesNotFinished.addAll(_normalTables);
+        _tableIdsConsideredDead.clear();
+    }
+
+    public void setTableIdsConsideredDead(int[] tableIdsConsideredDead)
+    {
+        _tableIdsConsideredDead.clear();
+        for(int tableId : tableIdsConsideredDead)
+            this._tableIdsConsideredDead.add(tableId);
     }
 }

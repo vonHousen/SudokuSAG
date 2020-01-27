@@ -368,6 +368,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 			afterTableFinished(tableId);
 			_tables.get(tableId).tell(new Table.WakeUpMsg());
 		}
+		_memory.setTableIdsConsideredDead(msg._tableIds);
 		getContext().getLog().info("Oh oh, table(s) not responding: " + tables);
 
 		return this;
@@ -760,17 +761,17 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	/** Teacher marks Table as finished and checks if it was the last one - if so, calls returnNewSolution(). */
 	private void afterTableFinished(int tableId)
 	{
-	final int tablesLeftCount =  _memory.addTableFinished(tableId);
-	if(tablesLeftCount < _tables.size()/4 && tablesLeftCount > 0)
-	{
-		_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
-				200, _memory.getTablesNotFinished()));
-	}
-	else if(tablesLeftCount == 0)
-	{
-		_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
-				0, null));
-		returnNewSolution();
-	}
+		final int tablesLeftCount =  _memory.addTableFinished(tableId);
+		if(tablesLeftCount < _tables.size()/4 && tablesLeftCount > 0)
+		{
+			_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
+					200, _memory.getTablesNotFinished()));
+		}
+		else if(tablesLeftCount == 0)
+		{
+			_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
+					0, null));
+			returnNewSolution();
+		}
 	}
 }

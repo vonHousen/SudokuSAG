@@ -388,13 +388,60 @@ public class SudokuStartTest
 		System.out.println();
 		sudokuResults.printNatural();
 
-		//while(!sudokuResults.equals(sudokuSolution) && chances-- > 0)		// give another chance
-		//{
-		//	results = (SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage(Duration.ofSeconds(10));
-		//	sudokuResults = results._newSolution;
-		//	System.out.println();
-		//	sudokuResults.printNatural();
-		//}
+		while(!sudokuResults.equals(sudokuSolution) && chances-- > 0)		// give another chance
+		{
+			results = (SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage(Duration.ofSeconds(10));
+			sudokuResults = results._newSolution;
+			System.out.println();
+			sudokuResults.printNatural();
+		}
+
+		//assertEquals(sudokuSolution, sudokuResults);
+	}
+
+	@Test
+	public void test_10_SolvingSudoku()
+	{
+		int NO = 10;
+		int chances = 10;
+		int rank = 2;
+		int[][] naturalBoard = {
+				{3,0,0,0},
+				{0,0,0,0},
+				{0,0,0,2},
+				{4,0,0,1}
+		};
+		int[][] naturalSolution = {
+				{3,1,2,4},
+				{2,4,1,3},
+				{1,3,4,2},
+				{4,2,3,1}
+		};
+		Sudoku sudoku = createSudokuFromNaturalBoard(rank, naturalBoard);
+		Sudoku sudokuSolution = createSudokuFromNaturalBoard(rank, naturalSolution);
+
+		// create the Supervisor & Teacher
+		TestProbe<SudokuSupervisor.Protocol> dummyGuardian = testKit.createTestProbe();
+		ActorRef<Teacher.Protocol> theTeacher = testKit.spawn(Teacher.create(
+				new Teacher.CreateMsg("teacher-" + NO, sudoku, dummyGuardian.getRef())
+		), "test-" + NO);
+
+		SudokuSupervisor.IterationFinishedMsg results =
+				(SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage(Duration.ofSeconds(10000));
+		Sudoku sudokuResults = results._newSolution;
+
+		// see how good are first iteration's results
+		sudoku.printNatural();
+		System.out.println();
+		sudokuResults.printNatural();
+
+		while(!sudokuResults.equals(sudokuSolution) && chances-- > 0)		// give another chance
+		{
+			results = (SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage(Duration.ofSeconds(10));
+			sudokuResults = results._newSolution;
+			System.out.println();
+			sudokuResults.printNatural();
+		}
 
 		//assertEquals(sudokuSolution, sudokuResults);
 	}

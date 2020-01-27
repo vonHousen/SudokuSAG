@@ -346,7 +346,7 @@ public class SudokuStartTest
 	public void test_9_SolvingSudoku()
 	{
 		int NO = 9;
-		int chances = 0;
+		int chances = 10;
 		int rank = 3;
 		int[][] naturalBoard = {
 				{0,0,0,0,0,0,0,0,0},
@@ -380,7 +380,7 @@ public class SudokuStartTest
 		), "test-" + NO);
 
 		SudokuSupervisor.IterationFinishedMsg results =
-				(SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage(Duration.ofSeconds(10));
+				(SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage(Duration.ofSeconds(10000));
 		Sudoku sudokuResults = results._newSolution;
 
 		// see how good are first iteration's results
@@ -388,13 +388,13 @@ public class SudokuStartTest
 		System.out.println();
 		sudokuResults.printNatural();
 
-		while(!sudokuResults.equals(sudokuSolution) && chances-- > 0)		// give another chance
-		{
-			results = (SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage();
-			sudokuResults = results._newSolution;
-			System.out.println();
-			sudokuResults.printNatural();
-		}
+		//while(!sudokuResults.equals(sudokuSolution) && chances-- > 0)		// give another chance
+		//{
+		//	results = (SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage(Duration.ofSeconds(10));
+		//	sudokuResults = results._newSolution;
+		//	System.out.println();
+		//	sudokuResults.printNatural();
+		//}
 
 		//assertEquals(sudokuSolution, sudokuResults);
 	}

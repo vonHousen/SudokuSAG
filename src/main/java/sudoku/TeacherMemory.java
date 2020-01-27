@@ -40,6 +40,8 @@ public class TeacherMemory
 
     private boolean allResetsCollected()
     {
+        if(_playerResetCount > _maxPlayerCount || _tableResetCount > _maxTableCount)
+            throw new RuntimeException("Too many resets!");
         return _playerResetCount == _maxPlayerCount && _tableResetCount == _maxTableCount;
     }
 

@@ -318,6 +318,8 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		if (_memory.addPlayerReset())
 		{
 			startNewIteration();
+			_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
+					5000, _memory.getTablesNotFinished()));
 		}
 		return this;
 	}
@@ -333,7 +335,6 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	{
 		_sudoku.insertDigit(msg._position.x, msg._position.y, msg._digit);
 		afterTableFinished(msg._tableId);
-
 		return this;
 	}
 
@@ -716,10 +717,10 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	{
 		//Sudoku newSolution = new Sudoku(_sudoku);
 		//_parent.tell(new SudokuSupervisor.IterationFinishedMsg(newSolution));
-		if (_sudoku.getEmptyFieldsCount() != 0)
+		if (_sudoku.getEmptyFieldsCount() != 0)		// if sudoku is solved
 		{
 			_memory.setNormalTables(getNormalTableIds(_sudoku));
-			if (!_sudoku.equals(_prevSudoku))
+			if (!_sudoku.equals(_prevSudoku))	// if previous solution is different from the current one
 			{
 				//_prevSudoku.setBoard(_sudoku.getBoard());
 				_prevSudoku = new Sudoku(_sudoku);
@@ -728,13 +729,15 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 			}
 			else
 			{
+				final Sudoku newSolution = new Sudoku(_sudoku);
+				_parent.tell(new SudokuSupervisor.IterationFinishedMsg(newSolution));
 				rewardPlayersAndRun();
 				_sudoku.reset();
 			}
 		}
 		else
 		{
-			Sudoku newSolution = new Sudoku(_sudoku);
+			final Sudoku newSolution = new Sudoku(_sudoku);
 			_parent.tell(new SudokuSupervisor.IterationFinishedMsg(newSolution));
 		}
 	}
@@ -751,9 +754,9 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		return normalTableIds;
 	}
 
-	/** Teacher marks Table as finished and checks if it was the last one - if so, calls returnNewSolution(). */
-	private void afterTableFinished(int tableId)
-	{
+		/** Teacher marks Table as finished and checks if it was the last one - if so, calls returnNewSolution(). */
+		private void afterTableFinished(int tableId)
+		{
 		final int tablesLeftCount =  _memory.addTableFinished(tableId);
 		if(tablesLeftCount < _tables.size()/4 && tablesLeftCount > 0)
 		{

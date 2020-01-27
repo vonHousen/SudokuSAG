@@ -19,11 +19,13 @@ public class Timer extends AbstractBehavior<Timer.Protocol>
 		public final ActorRef<TimerManager.Protocol> _parent;
 		public final int _milliseconds;
 		public final int _timerId;
-		public CreateMsg(ActorRef<TimerManager.Protocol> parent, int milliseconds, int timerId)
+		public final int _type;
+		public CreateMsg(ActorRef<TimerManager.Protocol> parent, int milliseconds, int timerId, int type)
 		{
 			this._parent = parent;
 			this._milliseconds = milliseconds;
 			this._timerId = timerId;
+			this._type = type;
 		}
 	}
 
@@ -32,7 +34,7 @@ public class Timer extends AbstractBehavior<Timer.Protocol>
 	{
 		super(context);
 		countdown(msg._milliseconds);
-		msg._parent.tell(new TimerManager.TimePassedMsg(msg._timerId, getContext().getSelf()));
+		msg._parent.tell(new TimerManager.TimePassedMsg(msg._timerId, getContext().getSelf(), msg._type));
 	}
 
 	/**

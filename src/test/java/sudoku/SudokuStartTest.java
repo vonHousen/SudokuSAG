@@ -346,7 +346,7 @@ public class SudokuStartTest
 	public void test_9_SolvingSudoku()
 	{
 		int NO = 9;
-		int chances = 10;
+		int chances = 100;
 		int rank = 3;
 		int[][] naturalBoard = {
 				{0,0,0,0,0,0,0,0,0},
@@ -372,6 +372,7 @@ public class SudokuStartTest
 		};
 		Sudoku sudoku = createSudokuFromNaturalBoard(rank, naturalBoard);
 		Sudoku sudokuSolution = createSudokuFromNaturalBoard(rank, naturalSolution);
+		Sudoku prevSudoku;
 
 		// create the Supervisor & Teacher
 		TestProbe<SudokuSupervisor.Protocol> dummyGuardian = testKit.createTestProbe();
@@ -380,22 +381,24 @@ public class SudokuStartTest
 		), "test-" + NO);
 
 		SudokuSupervisor.IterationFinishedMsg results =
-				(SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage(Duration.ofSeconds(10000));
+				(SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage(Duration.ofSeconds(10));
 		Sudoku sudokuResults = results._newSolution;
-
 		// see how good are first iteration's results
-		sudoku.printNatural();
-		System.out.println();
-		sudokuResults.printNatural();
+		//sudoku.printNatural();
+		//System.out.println();
+		//sudokuResults.printNatural();
 
 		while(!sudokuResults.equals(sudokuSolution) && chances-- > 0)		// give another chance
 		{
 			results = (SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage(Duration.ofSeconds(10));
+			prevSudoku = sudokuResults;
 			sudokuResults = results._newSolution;
-			System.out.println();
-			sudokuResults.printNatural();
+			if(prevSudoku.equals(sudokuResults))
+				break;
+			//System.out.println();
+			//sudokuResults.printNatural();
 		}
-
+		sudokuResults.printNatural();
 		//assertEquals(sudokuSolution, sudokuResults);
 	}
 
@@ -437,7 +440,7 @@ public class SudokuStartTest
 
 		while(!sudokuResults.equals(sudokuSolution) && chances-- > 0)		// give another chance
 		{
-			results = (SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage(Duration.ofSeconds(10));
+			results = (SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage(Duration.ofSeconds(15));
 			sudokuResults = results._newSolution;
 			//System.out.println();
 			//sudokuResults.printNatural();

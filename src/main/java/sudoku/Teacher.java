@@ -160,6 +160,16 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		}
 	}
 
+	/** Reply from the TimerManager, announcing that Teacher's tables are not responding. */
+	public static class IterationTimeoutMsg implements Protocol, SharedProtocols.ValidationProtocol
+	{
+		public final int _iterationNO;
+		public IterationTimeoutMsg(int iterationNO)
+		{
+			_iterationNO = iterationNO;
+		}
+	}
+
 
 	/** Sudoku riddle to be solved. */
 	private final Sudoku _sudoku;
@@ -215,6 +225,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		spawnTables();
 		registerAgentsOnSetup();
 		prepareForNewBigIterationAndRun();
+		_timerManager.tell(new TimerManager.NewIterationStartedMsg(3000));
 	}
 
 	/**
@@ -234,6 +245,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 				.onMessage(TableFinishedNegotiationsMsg.class, this::onTableFinishedNegotiations)
 				.onMessage(RewardReceivedMsg.class, this::onRewardReceived)
 				.onMessage(TablesAreNotRespondingMsg.class, this::onTablesAreNotResponding)
+				.onMessage(IterationTimeoutMsg.class, this::onIterationTimeout)
 				.onSignal(PreRestart.class, signal -> onPreRestart())
 				.onSignal(PostStop.class, signal -> onPostStop())
 				.build();
@@ -318,8 +330,6 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		if (_memory.addPlayerReset())
 		{
 			startNewIteration();
-			_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
-					5000, _memory.getTablesNotFinished()));
 		}
 		return this;
 	}
@@ -360,16 +370,50 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	 */
 	private Behavior<Protocol> onTablesAreNotResponding(TablesAreNotRespondingMsg msg)
 	{
-		StringBuilder tables = new StringBuilder();
-		_sudoku.printNatural();
-		for(int tableId : msg._tableIds)
-		{
-			tables.append(tableId).append(" ");
-			afterTableFinished(tableId);
-			_tables.get(tableId).tell(new Table.WakeUpMsg());
-		}
-		_memory.setTableIdsConsideredDead(msg._tableIds);
-		getContext().getLog().info("Oh oh, table(s) not responding: " + tables);
+		// StringBuilder tables = new StringBuilder();
+		// _sudoku.printNatural();
+		// for(int tableId : msg._tableIds)
+		// {
+		// 	tables.append(tableId).append(" ");
+		// 	//afterTableFinished(tableId);
+		// 	_tables.get(tableId).tell(new Table.WakeUpMsg());
+		// }
+		// //_memory.setTableIdsConsideredDead(msg._tableIds);
+		// System.out.println();
+		// System.out.println();
+		// System.out.println();
+		// getContext().getLog().info("Oh oh, table(s) not responding: " + tables);
+		// System.out.println();
+		// System.out.println();
+		// System.out.println();
+//
+		// _timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
+		// 		0, null));
+		// returnNewSolution();
+
+
+		return this;
+	}
+
+	private Behavior<Protocol> onIterationTimeout(IterationTimeoutMsg msg)
+	{
+		System.out.println();
+		System.out.println();
+		System.out.println();
+		System.out.println();
+		getContext().getLog().info("Iteration #{} timeout", msg._iterationNO);
+
+		for(int tableId : _memory.getTablesNotFinished())
+			_memory.addTableFinished(tableId);
+
+		if(_memory.getTablesNotFinished().length != 0)
+			throw new RuntimeException("Wrong count of tables finished.");
+
+		_timerManager.tell(new TimerManager.NewIterationStartedMsg(3000));
+		returnNewSolution();
+		getContext().getLog().info("Iteration is now under reset.");
+		System.out.println();
+		System.out.println();
 
 		return this;
 	}
@@ -591,6 +635,8 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	 */
 	private void rewardPlayersAndRun()
 	{
+		_timerManager.tell(new TimerManager.NewIterationStartedMsg(3000));
+
 		final int sudokuSize = _sudoku.getSize();
 		final int playerCount = _sudoku.getPlayerCount();
 		final int[] emptyFieldsCount = new int[playerCount]; // Number of empty fields each player has
@@ -764,13 +810,13 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		final int tablesLeftCount =  _memory.addTableFinished(tableId);
 		if(tablesLeftCount < _tables.size()/4 && tablesLeftCount > 0)
 		{
-			_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
-					200, _memory.getTablesNotFinished()));
+			/*_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
+					200, _memory.getTablesNotFinished()));*/
 		}
 		else if(tablesLeftCount == 0)
 		{
-			_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
-					0, null));
+			/*_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
+					0, null));*/
 			returnNewSolution();
 		}
 	}

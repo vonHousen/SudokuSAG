@@ -135,6 +135,9 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	/** Message received from the Teacher when agent is not responding. */
 	public static class WakeUpMsg implements Protocol, SharedProtocols.InspectionProtocol {}
 
+	/** Message received from the Player when agent is about to crash. */
+	public static class PlayerIsDeadMsg implements Protocol, SharedProtocols.InspectionProtocol {}
+
 
 	/** Custom exception thrown when 4th Player is about to be registered to this table. */
 	public static class IncorrectRegisterException extends RuntimeException
@@ -197,6 +200,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 				.onMessage(AcceptNegotiationsResultsMsg.class, this::onAcceptNegotiationsResults)
 				.onMessage(ResetMemoryMsg.class, this::onResetMemory)
 				.onMessage(WakeUpMsg.class, this::onWakeUp)
+				.onMessage(PlayerIsDeadMsg.class, this::onPlayerIsDead)
 				.build();
 	}
 
@@ -435,6 +439,15 @@ public class Table extends AbstractBehavior<Table.Protocol>
 		{
 			_players.getAgent(i).tell(new Player.WakeUpMsg());
 		}
+		return this;
+	}
+
+	/**
+	 * Table is being informed that its Player is dead.
+	 * @return		wrapped Behavior
+	 */
+	private Behavior<Protocol> onPlayerIsDead(PlayerIsDeadMsg msg)
+	{
 		return this;
 	}
 }

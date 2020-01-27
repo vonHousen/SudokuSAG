@@ -82,7 +82,7 @@ public class PlayerMemory
     {
         for (int i = 0; i < _digitVector.length; ++i)
         {
-            if (digit == _accepted[i])
+            if (digit == _accepted[i] || (_digitVector[i] == digit && _finished[i]))
             {
                 return true;
             }
@@ -156,7 +156,7 @@ public class PlayerMemory
 
     public float getAward(int n, int digit) {return _rewards[n][digit-1];}
 
-    public boolean getCollision(int n, int digit) {return _collisions[n][digit-1];}
+    public boolean getCollision(int n, int digit) {return _collisions[n][digit-1] || alreadyAccepted(digit);}
 
     public void setCollision(int n, int digit) {_collisions[n][digit-1] = true;}
 

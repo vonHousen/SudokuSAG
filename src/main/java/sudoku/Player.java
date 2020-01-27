@@ -8,7 +8,6 @@ import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
@@ -363,15 +362,19 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	 */
 	private Behavior<Protocol> onAdditionalInfoRequest(AdditionalInfoRequestMsg msg) // specify
 	{
+		final int tableIndex = _tables.getIndex(msg._tableId);
+		if (_memory.isFinished(tableIndex))
+			return this;
+
 		final int length = msg._otherDigits.length;
 		float[] weights = new float[length];
 		boolean[] collisions = new boolean[length];
-		final int index = _tables.getIndex(msg._tableId);
+
 		for (int i = 0; i < length; ++i)
 		{
 			final int digit = msg._otherDigits[i];
-			weights[i] = _memory.getAward(index, digit);
-			collisions[i] = _memory.getCollision(index, digit);
+			weights[i] = _memory.getAward(tableIndex, digit);
+			collisions[i] = _memory.getCollision(tableIndex, digit);
 		}
 		msg._replyTo.tell(
 				new Table.AdditionalInfoMsg(msg._otherDigits, weights, collisions, getContext().getSelf(), _playerId)
@@ -421,6 +424,9 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	private Behavior<Protocol> onRejectOffer(RejectOfferMsg msg) // cancel
 	{
 		final int tableIndex = _tables.getIndex(msg._tableId);
+		if (_memory.isFinished(tableIndex))
+			return this;
+
 		final int rejectedDigit = msg._rejectedDigit;
 		{
 			final int myDigit = _memory.getDigit(tableIndex);
@@ -450,11 +456,14 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	 */
 	private Behavior<Protocol> onNegotiationsPositive(NegotiationsPositiveMsg msg) // winner
 	{
+		final int tableIndex = _tables.getIndex(msg._tableId);
+		if (_memory.isFinished(tableIndex))
+			return this;
+
 		final int approvedDigit = msg._approvedDigit;
 		if(approvedDigit == 0)
 			throw new RuntimeException("Table cannot accept zero");
 
-		final int tableIndex = _tables.getIndex(msg._tableId);
 		final ActorRef<Table.Protocol> tableRef = _tables.getAgent(tableIndex);
 		// Check if the digit was already accepted on a different Table
 		if (_memory.alreadyAccepted(approvedDigit))
@@ -480,6 +489,8 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	private Behavior<Protocol> onNegotiationsFinished(NegotiationsFinishedMsg msg) // inserted
 	{
 		final int tableIndex = _tables.getIndex(msg._tableId);
+		if (_memory.isFinished(tableIndex))
+			return this;
 		final int resultingDigit = msg._resultingDigit;
 		if (resultingDigit != 0) // Finished with non-empty field
 		{

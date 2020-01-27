@@ -730,17 +730,13 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 			}
 			else
 			{
-				final Sudoku tmpSudoku = new Sudoku(_sudoku);
-				tmpSudoku.reset();
-				_memory.setNormalTables(getNormalTableIds(tmpSudoku));
-				_memory.reset();
-
 				final Sudoku newSolution = new Sudoku(_sudoku);
 				_parent.tell(new SudokuSupervisor.IterationFinishedMsg(newSolution));
-
 				rewardPlayersAndRun();
 				_sudoku.reset();
 			}
+			_memory.setNormalTables(getNormalTableIds(_sudoku));
+			_memory.reset();
 		}
 		else
 		{

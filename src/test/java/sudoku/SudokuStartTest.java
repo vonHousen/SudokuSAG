@@ -517,7 +517,6 @@ public class SudokuStartTest
 		sudokuResults.printNatural();
 		assertEquals(sudokuSolution, sudokuResults);
 	}
-}
 
 	@Test
 	public void test_12_SolvingSudoku()
@@ -578,3 +577,4 @@ public class SudokuStartTest
 		sudokuResults.printNatural();
 		assertEquals(sudokuSolution, sudokuResults);
 	}
+}

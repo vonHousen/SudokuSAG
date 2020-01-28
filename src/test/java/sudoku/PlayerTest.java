@@ -126,7 +126,7 @@ public class PlayerTest
 
 
 		// Check Player's response for Table's request for additional info
-		thePlayer.tell(new Player.AdditionalInfoRequestMsg(new int[]{5,6}, tableDummy.getRef(), 0));
+		thePlayer.tell(new Player.AdditionalInfoRequestMsg(new int[]{5,6}, tableDummy.getRef(), 0, 1));
 		Table.AdditionalInfoMsg response = (Table.AdditionalInfoMsg) tableDummy.receiveMessage();
 		assertTrue(Arrays.equals(response._digits, new int[]{5, 6}));
 		assertTrue(Arrays.equals(response._collisions, new boolean[]{true, false}));
@@ -134,7 +134,7 @@ public class PlayerTest
 
 
 		// Send to a Player rejection of his offer
-		thePlayer.tell(new Player.RejectOfferMsg(respondedDigit, tableDummy.getRef(), 0));
+		thePlayer.tell(new Player.RejectOfferMsg(respondedDigit, tableDummy.getRef(), 0, 1));
 		Table.OfferMsg responseNewOffer = (Table.OfferMsg) tableDummy.receiveMessage();
 		assertNotEquals(4, responseNewOffer._offeredDigit);
 		assertNotEquals(5, responseNewOffer._offeredDigit);
@@ -147,28 +147,33 @@ public class PlayerTest
 
 
 		// Send to a Player possible positive negotiations results with double plot twists from other tables
-		thePlayer.tell(new Player.NegotiationsPositiveMsg(1, tableOtherDummies.get(1).getRef(), 18));
+		thePlayer.tell(new Player.NegotiationsPositiveMsg(
+				1, tableOtherDummies.get(1).getRef(), 18, 1));
 		Table.AcceptNegotiationsResultsMsg responseAccept_1 =
 				(Table.AcceptNegotiationsResultsMsg) tableOtherDummies.get(1).receiveMessage();
 		assertEquals(1, responseAccept_1._acceptedDigit);
-		thePlayer.tell(new Player.NegotiationsPositiveMsg(1, tableOtherDummies.get(2).getRef(), 27));
+		thePlayer.tell(new Player.NegotiationsPositiveMsg(
+				1, tableOtherDummies.get(2).getRef(), 27, 1));
 		Table.WithdrawOfferMsg responseDecline =
 				(Table.WithdrawOfferMsg) tableOtherDummies.get(2).receiveMessage();
 		assertEquals(1, responseDecline._withdrawnDigit);
-		thePlayer.tell(new Player.RejectOfferMsg(1, tableOtherDummies.get(1).getRef(), 18));
+		thePlayer.tell(new Player.RejectOfferMsg(
+				1, tableOtherDummies.get(1).getRef(), 18, 1));
 		tableOtherDummies.get(1).expectMessageClass(Table.OfferMsg.class);
-		thePlayer.tell(new Player.NegotiationsPositiveMsg(1, tableOtherDummies.get(3).getRef(), 36));
+		thePlayer.tell(new Player.NegotiationsPositiveMsg(
+				1, tableOtherDummies.get(3).getRef(), 36, 1));
 		Table.AcceptNegotiationsResultsMsg responseAccept_2 =
 				(Table.AcceptNegotiationsResultsMsg) tableOtherDummies.get(3).receiveMessage();
 		assertEquals(1, responseAccept_2._acceptedDigit);
-		thePlayer.tell(new Player.NegotiationsPositiveMsg(6, tableDummy.getRef(), 0));
+		thePlayer.tell(new Player.NegotiationsPositiveMsg(
+				6, tableDummy.getRef(), 0, 1));
 		Table.AcceptNegotiationsResultsMsg responseAccept_3 =
 				(Table.AcceptNegotiationsResultsMsg) tableDummy.receiveMessage();
 		assertEquals(6, responseAccept_3._acceptedDigit);
 
 
 		// Test finishing the negotiations
-		thePlayer.tell(new Player.NegotiationsFinishedMsg(6, tableDummy.getRef(), 0));
+		thePlayer.tell(new Player.NegotiationsFinishedMsg(6, tableDummy.getRef(), 0, 1));
 		tableDummy.expectNoMessage();
 		for(TestProbe<Table.Protocol> tableOtherDummy : tableOtherDummies)
 			tableOtherDummy.expectNoMessage();
@@ -219,7 +224,7 @@ public class PlayerTest
 
 
 		// Check Player's response for Table's request for additional info
-		thePlayer.tell(new Player.AdditionalInfoRequestMsg(new int[]{3,7}, tableDummy.getRef(), 0));
+		thePlayer.tell(new Player.AdditionalInfoRequestMsg(new int[]{3,7}, tableDummy.getRef(), 0, 1));
 		Table.AdditionalInfoMsg response = (Table.AdditionalInfoMsg) tableDummy.receiveMessage();
 		assertTrue(Arrays.equals(response._digits, new int[]{3, 7}));
 		assertTrue(Arrays.equals(response._collisions, new boolean[]{true, true}));
@@ -227,14 +232,14 @@ public class PlayerTest
 
 
 		// Send to a Player rejection of his offer
-		thePlayer.tell(new Player.RejectOfferMsg(1, tableDummy.getRef(), 0));
+		thePlayer.tell(new Player.RejectOfferMsg(1, tableDummy.getRef(), 0, 1));
 		Table.OfferMsg responseNewOffer = (Table.OfferMsg) tableDummy.receiveMessage();
 		assertEquals(0, responseNewOffer._offeredDigit);
 		assertEquals((float) 0, responseNewOffer._digitWeight);
 
 
 		// Simulate that the Player is run out of possibilities
-		thePlayer.tell(new Player.NegotiationsFinishedMsg(0, tableDummy.getRef(), 0));
+		thePlayer.tell(new Player.NegotiationsFinishedMsg(0, tableDummy.getRef(), 0, 1));
 		tableDummy.expectNoMessage();
 	}
 }

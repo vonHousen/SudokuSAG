@@ -2,6 +2,7 @@ package sudoku;
 
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
+import akka.actor.typed.PreRestart;
 import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
@@ -60,11 +61,12 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	{
 		public final ActorRef<Player.Protocol> _replyTo;
 		public final int _playerId;
-
-		protected NegotiationsMsg(ActorRef<Player.Protocol> replyTo, int playerId)
+		public final int _iterationId;
+		protected NegotiationsMsg(ActorRef<Player.Protocol> replyTo, int playerId, int iterationId)
 		{
 			this._replyTo = replyTo;
 			this._playerId = playerId;
+			this._iterationId = iterationId;
 		}
 	}
 
@@ -73,10 +75,14 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	{
 		public final int _offeredDigit;
 		public final float _digitWeight;
-
-		public OfferMsg(int offeredDigit, float digitWeight, ActorRef<Player.Protocol> replyTo, int playerId)
+		public OfferMsg(
+				int offeredDigit,
+				float digitWeight,
+				ActorRef<Player.Protocol> replyTo,
+				int playerId,
+				int iterationId)
 		{
-			super(replyTo, playerId);
+			super(replyTo, playerId, iterationId);
 			this._offeredDigit = offeredDigit;
 			this._digitWeight = digitWeight;
 		}
@@ -88,10 +94,15 @@ public class Table extends AbstractBehavior<Table.Protocol>
 		public final int[] _digits;
 		public final float[] _weights;
 		public final boolean[] _collisions;
-
-		public AdditionalInfoMsg(int[] digits, float[] weights, boolean[] collisions, ActorRef<Player.Protocol> replyTo, int playerId)
+		public AdditionalInfoMsg(
+				int[] digits,
+				float[] weights,
+				boolean[] collisions,
+				ActorRef<Player.Protocol> replyTo,
+				int playerId,
+				int iterationId)
 		{
-			super(replyTo, playerId);
+			super(replyTo, playerId, iterationId);
 			this._digits = digits;
 			this._weights = weights;
 			this._collisions = collisions;
@@ -102,10 +113,9 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	public static class WithdrawOfferMsg extends NegotiationsMsg
 	{
 		public final int _withdrawnDigit;
-
-		public WithdrawOfferMsg(int withdrawnDigit, ActorRef<Player.Protocol> replyTo, int playerId)
+		public WithdrawOfferMsg(int withdrawnDigit, ActorRef<Player.Protocol> replyTo, int playerId, int iterationId)
 		{
-			super(replyTo, playerId);
+			super(replyTo, playerId, iterationId);
 			this._withdrawnDigit = withdrawnDigit;
 		}
 	}
@@ -114,10 +124,13 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	public static class AcceptNegotiationsResultsMsg extends NegotiationsMsg
 	{
 		public final int _acceptedDigit;
-
-		public AcceptNegotiationsResultsMsg(int acceptedDigit, ActorRef<Player.Protocol> replyTo, int playerId)
+		public AcceptNegotiationsResultsMsg(
+				int acceptedDigit,
+				ActorRef<Player.Protocol> replyTo,
+				int playerId,
+				int iterationId)
 		{
-			super(replyTo, playerId);
+			super(replyTo, playerId, iterationId);
 			this._acceptedDigit = acceptedDigit;
 		}
 	}
@@ -201,6 +214,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 				.onMessage(ResetMemoryMsg.class, this::onResetMemory)
 				.onMessage(WakeUpMsg.class, this::onWakeUp)
 				.onMessage(PlayerIsDeadMsg.class, this::onPlayerIsDead)
+				.onSignal(PreRestart.class, signal -> onPreRestart())
 				.build();
 	}
 
@@ -245,7 +259,8 @@ public class Table extends AbstractBehavior<Table.Protocol>
 					{
 						// Ask Player #i for more information
 						final ActorRef<Player.Protocol> tempPlayerRef = _players.getAgent(i);
-						tempPlayerRef.tell(new Player.AdditionalInfoRequestMsg(unknownDigits, getContext().getSelf(), _tableId));
+						tempPlayerRef.tell(new Player.AdditionalInfoRequestMsg(
+								unknownDigits, getContext().getSelf(), _tableId, _memory.getIterationId()));
 						_memory.incrementRequestCount(i);
 					}
 					// Table already requested or knows the information it needs from Player #i
@@ -262,7 +277,8 @@ public class Table extends AbstractBehavior<Table.Protocol>
 				for (int i = 0; i < 3; ++i)
 				{
 					final ActorRef<Player.Protocol> tempPlayerRef = _players.getAgent(i);
-					tempPlayerRef.tell(new Player.NegotiationsPositiveMsg(bestDigit, getContext().getSelf(), _tableId));
+					tempPlayerRef.tell(new Player.NegotiationsPositiveMsg(
+							bestDigit, getContext().getSelf(), _tableId, _memory.getIterationId()));
 				}
 			}
 		}
@@ -279,7 +295,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 		for (int i = 0; i < 3; ++i)
 		{
 			_players.getAgent(i).tell(new Player.NegotiationsFinishedMsg(
-					digitSolution, getContext().getSelf(), _tableId));
+					digitSolution, getContext().getSelf(), _tableId, _memory.getIterationId()));
 		}
 		_parent.tell(new Teacher.TableFinishedNegotiationsMsg(digitSolution, _tablePos, _tableId));
 	}
@@ -297,7 +313,8 @@ public class Table extends AbstractBehavior<Table.Protocol>
 		for (Integer n : playerIndices)
 		{
 			final ActorRef<Player.Protocol> tempPlayerRef = _players.getAgent(n);
-			tempPlayerRef.tell(new Player.RejectOfferMsg(digitColliding, getContext().getSelf(), _tableId));
+			tempPlayerRef.tell(new Player.RejectOfferMsg(
+					digitColliding, getContext().getSelf(), _tableId, _memory.getIterationId()));
 		}
 		_memory.setBestOffer(0);
 		_memory.resetAcceptanceCount();
@@ -312,7 +329,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	 */
 	private Behavior<Protocol> onOffer(OfferMsg msg) // offer
 	{
-		if(_memory.didAlreadyFinished())
+		if(_memory.didAlreadyFinished(msg._iterationId))
 			return this;    // ignore late messages
 
 		final int index = _players.getIndex(msg._playerId);
@@ -329,7 +346,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 		if (_memory.isDenied(digit)) // Digit causes conflict for some Player
 		{
 			_memory.clearOffer(index); // Lack of this line causes some rare bizarre exceptions
-			player.tell(new Player.RejectOfferMsg(digit, getContext().getSelf(), _tableId));
+			player.tell(new Player.RejectOfferMsg(digit, getContext().getSelf(), _tableId, _memory.getIterationId()));
 			return this;
 		}
 
@@ -352,7 +369,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	 */
 	private Behavior<Protocol> onAdditionalInfo(AdditionalInfoMsg msg) // specified
 	{
-		if(_memory.didAlreadyFinished())
+		if(_memory.didAlreadyFinished(msg._iterationId))
 			return this;    // ignore late messages
 
 		final int index = _players.getIndex(msg._playerId);
@@ -384,7 +401,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	 */
 	private Behavior<Protocol> onWithdrawOffer(WithdrawOfferMsg msg) // deny
 	{
-		if(_memory.didAlreadyFinished())
+		if(_memory.didAlreadyFinished(msg._iterationId))
 			return this;    // ignore late messages
 
 		withdrawAndInform(msg._withdrawnDigit);
@@ -402,7 +419,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	 */
 	private Behavior<Protocol> onAcceptNegotiationsResults(AcceptNegotiationsResultsMsg msg) // accept
 	{
-		if(_memory.didAlreadyFinished())
+		if(_memory.didAlreadyFinished(msg._iterationId))
 			return this;    // ignore late messages
 
 		if (msg._acceptedDigit == _memory.getBestOffer())
@@ -451,4 +468,17 @@ public class Table extends AbstractBehavior<Table.Protocol>
 	{
 		return this;
 	}
+
+	/**
+	 * Handler of PreRestart signal.
+	 * Expected just before restarting the agent.
+	 * @return 		wrapped Behavior
+	 */
+	private Table onPreRestart()
+	{
+		getContext().getLog().info("Table #{} will be restarted.", _tableId);
+		return this;
+	}
+
+
 }

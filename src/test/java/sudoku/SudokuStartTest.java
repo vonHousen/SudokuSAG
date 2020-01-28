@@ -430,22 +430,27 @@ public class SudokuStartTest
 		), "test-" + NO);
 
 		SudokuSupervisor.IterationFinishedMsg results =
-				(SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage(Duration.ofSeconds(10000));
+				(SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage(Duration.ofSeconds(10));
 		Sudoku sudokuResults = results._newSolution;
 
 		// see how good are first iteration's results
-		sudoku.printNatural();
-		System.out.println();
-		sudokuResults.printNatural();
+		// sudoku.printNatural();
+		// System.out.println();
+		// sudokuResults.printNatural();
 
 		while(!sudokuResults.equals(sudokuSolution) && chances-- > 0)		// give another chance
 		{
-			results = (SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage(Duration.ofSeconds(15));
+			results = (SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage(Duration.ofSeconds(10));
 			sudokuResults = results._newSolution;
-			System.out.println();
-			sudokuResults.printNatural();
+			// System.out.println();
+			// sudokuResults.printNatural();
 		}
-
+		System.out.println();
+		System.out.println();
+		System.out.println("Calculations are over with " + chances + " chances left");
+		System.out.println();
+		System.out.println();
+		sudokuResults.printNatural();
 		assertEquals(sudokuSolution, sudokuResults);
 	}
 
@@ -491,18 +496,25 @@ public class SudokuStartTest
 		Sudoku sudokuResults = results._newSolution;
 
 		// see how good are first iteration's results
-		sudoku.printNatural();
-		System.out.println();
-		sudokuResults.printNatural();
+		// sudoku.printNatural();
+		// System.out.println();
+		// sudokuResults.printNatural();
+		System.out.println(sudokuResults.getEmptyFieldsCount());
 
 		while(!sudokuResults.equals(sudokuSolution) && chances-- > 0)		// give another chance
 		{
-			results = (SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage(Duration.ofSeconds(10));
+			results = (SudokuSupervisor.IterationFinishedMsg) dummyGuardian.receiveMessage(Duration.ofSeconds(15));
 			sudokuResults = results._newSolution;
-			System.out.println();
-			sudokuResults.printNatural();
+			// System.out.println();
+			// sudokuResults.printNatural();
+			System.out.println(sudokuResults.getEmptyFieldsCount());
 		}
-
+		System.out.println();
+		System.out.println();
+		System.out.println("Calculations are over with " + chances + " chances left");
+		System.out.println();
+		System.out.println();
+		sudokuResults.printNatural();
 		assertEquals(sudokuSolution, sudokuResults);
 	}
 }

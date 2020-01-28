@@ -402,18 +402,18 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		System.out.println();
 		System.out.println();
 		getContext().getLog().info("Iteration #{} timeout", msg._iterationNO);
-
-		for(int tableId : _memory.getTablesNotFinished())
-			_memory.addTableFinished(tableId);
-
-		if(_memory.getTablesNotFinished().length != 0)
-			throw new RuntimeException("Wrong count of tables finished.");
-
-		_timerManager.tell(new TimerManager.NewIterationStartedMsg(3000));
-		returnNewSolution();
 		getContext().getLog().info("Iteration is now under reset.");
 		System.out.println();
 		System.out.println();
+
+		// final Sudoku newSolution = new Sudoku(_sudoku);
+		// _parent.tell(new SudokuSupervisor.IterationFinishedMsg(newSolution));
+
+		for(int tableId : _memory.getTablesNotFinished())
+			afterTableFinished(tableId);
+
+		//_timerManager.tell(new TimerManager.NewIterationStartedMsg(3000));
+		//returnNewSolution();
 
 		return this;
 	}
@@ -468,10 +468,10 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 			for(x = 0; x < sudokuSize; ++x, ++tableId)
 			{
 				ActorRef<Table.Protocol> newTable = getContext().spawn(
-						//Behaviors.supervise(		TODO Kamil - decide if supervise children
+						// Behaviors.supervise(		// TODO Kamil - decide if supervise children
 						Table.create(new Table.CreateMsg(
 								tableId, new Position(x, y), sudokuSize, getContext().getSelf()))
-						//).onFailure(SupervisorStrategy.restart())
+						// ).onFailure(SupervisorStrategy.restart())
 						, "table-" + tableId
 				);
 				_tables.put(tableId, newTable);

@@ -22,6 +22,9 @@ public class PlayerMemory
     private final int[] _accepted;
     /** Array of flags indicating that a Table linked to a certain field ended negotiations. */
     private final boolean[] _finished;
+    /** Id of current iteration. */
+    private int _iterationId;
+
 
     /**
      * Definition of sudoku field mask.
@@ -63,6 +66,7 @@ public class PlayerMemory
         this._tablePriorities = new int[sudokuSize];
         this._accepted = new int[sudokuSize];                           // By default initialized to 0
         this._finished = new boolean[sudokuSize];                       // By default initialized to false
+        this._iterationId = 0;
     }
 
     public int getSudokuSize() {return _digitVector.length;}
@@ -71,7 +75,13 @@ public class PlayerMemory
 
     public void setAccepted(int n, int value) {_accepted[n] = value;}
 
-    public boolean isFinished(int n) {return _finished[n];}
+    public boolean isFinished(int n, int iterationId)
+    {
+        if (iterationId != _iterationId)
+            return true;
+        else
+            return _finished[n];
+    }
 
     public void finish(int n)
     {
@@ -228,6 +238,7 @@ public class PlayerMemory
             _accepted[i] = 0;
             _finished[i] = maskValue;
         }
+        _iterationId++;
     }
 
     /**
@@ -268,5 +279,10 @@ public class PlayerMemory
         }
         // Clear memory
         genericReset(sudokuSize, MaskState.SOFT);
+    }
+
+    public int getIterationId()
+    {
+        return _iterationId;
     }
 }

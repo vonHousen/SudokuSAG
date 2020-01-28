@@ -25,6 +25,8 @@ public class TableMemory
     private boolean _hasFinishedIteration;
     /** Does negotiations finished positively = with a consensus? */
     private boolean _areNegotiationsFinishedPositively;
+    /** Id of current iteration. */
+    private int _iterationId;
 
 
     public TableMemory(int sudokuSize)
@@ -39,6 +41,7 @@ public class TableMemory
         this._bestOffer = 0;
         this._hasFinishedIteration = true;
         this._areNegotiationsFinishedPositively = false;
+        this._iterationId = 0;
     }
 
     /**
@@ -243,11 +246,14 @@ public class TableMemory
         _bestOffer = 0;
         _hasFinishedIteration = false;
         _areNegotiationsFinishedPositively = false;
+        _iterationId++;
     }
 
-    public boolean didAlreadyFinished()
+    public boolean didAlreadyFinished(int iterationId)
     {
-        if(!_hasFinishedIteration)
+        if(iterationId != _iterationId)
+            return true;
+        else if(!_hasFinishedIteration)
             return false;
         else if(_areNegotiationsFinishedPositively)
             throw new RuntimeException("You should not even ask for that! Table got unexpected message!");
@@ -259,5 +265,10 @@ public class TableMemory
     {
         _hasFinishedIteration = true;
         _areNegotiationsFinishedPositively = (digit != 0);
+    }
+
+    public int getIterationId()
+    {
+        return this._iterationId;
     }
 }

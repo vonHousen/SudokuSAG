@@ -79,15 +79,15 @@ public class TableTest
 
 
 		// Check Table's response for Player's offers
-		theTable.tell(new Table.OfferMsg(1, 1L, playerDummy_1.getRef(), 0));
+		theTable.tell(new Table.OfferMsg(1, 1L, playerDummy_1.getRef(), 0, 1));
 		playerDummy_1.expectNoMessage();
 		playerDummy_2.expectNoMessage();
 		playerDummy_3.expectNoMessage();
-		theTable.tell(new Table.OfferMsg(2, 2L, playerDummy_2.getRef(), 9));
+		theTable.tell(new Table.OfferMsg(2, 2L, playerDummy_2.getRef(), 9, 1));
 		playerDummy_1.expectNoMessage();
 		playerDummy_2.expectNoMessage();
 		playerDummy_3.expectNoMessage();
-		theTable.tell(new Table.OfferMsg(3, 3L, playerDummy_3.getRef(), 18));
+		theTable.tell(new Table.OfferMsg(3, 3L, playerDummy_3.getRef(), 18, 1));
 		Player.AdditionalInfoRequestMsg response1 = (Player.AdditionalInfoRequestMsg) playerDummy_1.receiveMessage();
 		Player.AdditionalInfoRequestMsg response2 = (Player.AdditionalInfoRequestMsg) playerDummy_2.receiveMessage();
 		Player.AdditionalInfoRequestMsg response3 = (Player.AdditionalInfoRequestMsg) playerDummy_3.receiveMessage();
@@ -98,24 +98,39 @@ public class TableTest
 
 		// Send to the Table more info about other offers
 		theTable.tell(new Table.AdditionalInfoMsg(
-				new int[]{2, 3}, new float[]{5L, 3L}, new boolean[]{false, false}, playerDummy_1.getRef(), 0));
+				new int[]{2, 3},
+				new float[]{5L, 3L},
+				new boolean[]{false, false},
+				playerDummy_1.getRef(),
+				0,
+				1));
 		playerDummy_1.expectNoMessage();
 		playerDummy_2.expectNoMessage();
 		playerDummy_3.expectNoMessage();
 		theTable.tell(new Table.AdditionalInfoMsg(
-				new int[]{1, 3}, new float[]{100L, 2L}, new boolean[]{true, false}, playerDummy_2.getRef(), 9));
+				new int[]{1, 3},
+				new float[]{100L, 2L},
+				new boolean[]{true, false},
+				playerDummy_2.getRef(),
+				9,
+				1));
 		playerDummy_1.expectMessageClass(Player.RejectOfferMsg.class);
 		playerDummy_2.expectNoMessage();
 		playerDummy_3.expectNoMessage();
 		theTable.tell(new Table.AdditionalInfoMsg(
-				new int[]{1, 2}, new float[]{2L, 2L}, new boolean[]{false, false}, playerDummy_3.getRef(), 18));
+				new int[]{1, 2},
+				new float[]{2L, 2L},
+				new boolean[]{false, false},
+				playerDummy_3.getRef(),
+				18,
+				1));
 		playerDummy_1.expectNoMessage();
 		playerDummy_2.expectNoMessage();
 		playerDummy_3.expectNoMessage();
 
 
 		// Simulate replacing conflicting digit
-		theTable.tell(new Table.OfferMsg(8, 3L, playerDummy_1.getRef(), 0));
+		theTable.tell(new Table.OfferMsg(8, 3L, playerDummy_1.getRef(), 0, 1));
 		playerDummy_1.expectNoMessage();
 		Player.AdditionalInfoRequestMsg response4 = (Player.AdditionalInfoRequestMsg) playerDummy_2.receiveMessage();
 		Player.AdditionalInfoRequestMsg response5 = (Player.AdditionalInfoRequestMsg) playerDummy_3.receiveMessage();
@@ -125,12 +140,22 @@ public class TableTest
 
 		// Send to the Table more info about replaced offer
 		theTable.tell(new Table.AdditionalInfoMsg(
-				new int[]{8}, new float[]{1L}, new boolean[]{false, false}, playerDummy_2.getRef(), 9));
+				new int[]{8},
+				new float[]{1L},
+				new boolean[]{false, false},
+				playerDummy_2.getRef(),
+				9,
+				1));
 		playerDummy_1.expectNoMessage();
 		playerDummy_2.expectNoMessage();
 		playerDummy_3.expectNoMessage();
 		theTable.tell(new Table.AdditionalInfoMsg(
-				new int[]{8}, new float[]{2L}, new boolean[]{false, false}, playerDummy_3.getRef(), 18));
+				new int[]{8},
+				new float[]{2L},
+				new boolean[]{false, false},
+				playerDummy_3.getRef(),
+				18,
+				1));
 		Player.NegotiationsPositiveMsg responseOK1 = (Player.NegotiationsPositiveMsg) playerDummy_1.receiveMessage();
 		Player.NegotiationsPositiveMsg responseOK2 = (Player.NegotiationsPositiveMsg) playerDummy_2.receiveMessage();
 		Player.NegotiationsPositiveMsg responseOK3 = (Player.NegotiationsPositiveMsg) playerDummy_3.receiveMessage();
@@ -140,23 +165,27 @@ public class TableTest
 
 
 		// Send some acceptations to the Table but with plot twist
-		theTable.tell(new Table.AcceptNegotiationsResultsMsg(2, playerDummy_1.getRef(), 0));
+		theTable.tell(new Table.AcceptNegotiationsResultsMsg(
+				2, playerDummy_1.getRef(), 0, 1));
 		playerDummy_1.expectNoMessage();
 		playerDummy_2.expectNoMessage();
 		playerDummy_3.expectNoMessage();
-		theTable.tell(new Table.WithdrawOfferMsg(2, playerDummy_3.getRef(), 18));
+		theTable.tell(new Table.WithdrawOfferMsg(
+				2, playerDummy_3.getRef(), 18, 1));
 		playerDummy_1.expectNoMessage();
 		Player.RejectOfferMsg responseReject2 = (Player.RejectOfferMsg) playerDummy_2.receiveMessage();
 		playerDummy_3.expectNoMessage();
 		assertEquals(2, responseReject2._rejectedDigit);
-		theTable.tell(new Table.AcceptNegotiationsResultsMsg(2, playerDummy_2.getRef(), 9));
+		theTable.tell(new Table.AcceptNegotiationsResultsMsg(
+				2, playerDummy_2.getRef(), 9, 1));
 		playerDummy_1.expectNoMessage();
 		playerDummy_2.expectNoMessage();
 		playerDummy_3.expectNoMessage();
 
 
 		// Respond with another digit
-		theTable.tell(new Table.OfferMsg(7, 1L, playerDummy_2.getRef(), 9));
+		theTable.tell(new Table.OfferMsg(
+				7, 1L, playerDummy_2.getRef(), 9, 1));
 		Player.AdditionalInfoRequestMsg response6 = (Player.AdditionalInfoRequestMsg) playerDummy_1.receiveMessage();
 		playerDummy_2.expectNoMessage();
 		Player.AdditionalInfoRequestMsg response7 = (Player.AdditionalInfoRequestMsg) playerDummy_3.receiveMessage();
@@ -166,12 +195,22 @@ public class TableTest
 
 		// Send to the Table more info about replaced offer & expect new negotiations positive results
 		theTable.tell(new Table.AdditionalInfoMsg(
-				new int[]{7}, new float[]{1L}, new boolean[]{false, false}, playerDummy_1.getRef(), 0));
+				new int[]{7},
+				new float[]{1L},
+				new boolean[]{false, false},
+				playerDummy_1.getRef(),
+				0,
+				1));
 		playerDummy_1.expectNoMessage();
 		playerDummy_2.expectNoMessage();
 		playerDummy_3.expectNoMessage();
 		theTable.tell(new Table.AdditionalInfoMsg(
-				new int[]{7}, new float[]{1L}, new boolean[]{false, false}, playerDummy_3.getRef(), 18));
+				new int[]{7},
+				new float[]{1L},
+				new boolean[]{false, false},
+				playerDummy_3.getRef(),
+				18,
+				1));
 		Player.NegotiationsPositiveMsg responseOK4 = (Player.NegotiationsPositiveMsg) playerDummy_1.receiveMessage();
 		Player.NegotiationsPositiveMsg responseOK5 = (Player.NegotiationsPositiveMsg) playerDummy_2.receiveMessage();
 		Player.NegotiationsPositiveMsg responseOK6 = (Player.NegotiationsPositiveMsg) playerDummy_3.receiveMessage();
@@ -181,9 +220,12 @@ public class TableTest
 
 
 		// Agree to latest negotiations results
-		theTable.tell(new Table.AcceptNegotiationsResultsMsg(3, playerDummy_1.getRef(), 0));
-		theTable.tell(new Table.AcceptNegotiationsResultsMsg(3, playerDummy_2.getRef(), 9));
-		theTable.tell(new Table.AcceptNegotiationsResultsMsg(3, playerDummy_3.getRef(), 18));
+		theTable.tell(new Table.AcceptNegotiationsResultsMsg(
+				3, playerDummy_1.getRef(), 0, 1));
+		theTable.tell(new Table.AcceptNegotiationsResultsMsg(
+				3, playerDummy_2.getRef(), 9, 1));
+		theTable.tell(new Table.AcceptNegotiationsResultsMsg(
+				3, playerDummy_3.getRef(), 18, 1));
 		Player.NegotiationsFinishedMsg responseFinish_1 =
 				(Player.NegotiationsFinishedMsg) playerDummy_1.receiveMessage();
 		Player.NegotiationsFinishedMsg responseFinish_2 =
@@ -231,15 +273,15 @@ public class TableTest
 
 
 		// Check Table's response for Player's offers
-		theTable.tell(new Table.OfferMsg(6, 1L, playerDummy_1.getRef(), 0));
+		theTable.tell(new Table.OfferMsg(6, 1L, playerDummy_1.getRef(), 0, 1));
 		playerDummy_1.expectNoMessage();
 		playerDummy_2.expectNoMessage();
 		playerDummy_3.expectNoMessage();
-		theTable.tell(new Table.OfferMsg(5, 2L, playerDummy_2.getRef(), 9));
+		theTable.tell(new Table.OfferMsg(5, 2L, playerDummy_2.getRef(), 9, 1));
 		playerDummy_1.expectNoMessage();
 		playerDummy_2.expectNoMessage();
 		playerDummy_3.expectNoMessage();
-		theTable.tell(new Table.OfferMsg(4, 3L, playerDummy_3.getRef(), 18));
+		theTable.tell(new Table.OfferMsg(4, 3L, playerDummy_3.getRef(), 18, 1));
 		Player.AdditionalInfoRequestMsg response1 = (Player.AdditionalInfoRequestMsg) playerDummy_1.receiveMessage();
 		Player.AdditionalInfoRequestMsg response2 = (Player.AdditionalInfoRequestMsg) playerDummy_2.receiveMessage();
 		Player.AdditionalInfoRequestMsg response3 = (Player.AdditionalInfoRequestMsg) playerDummy_3.receiveMessage();
@@ -250,24 +292,40 @@ public class TableTest
 
 		// Send to the Table more info about other offers
 		theTable.tell(new Table.AdditionalInfoMsg(
-				new int[]{4, 5}, new float[]{5L, 3L}, new boolean[]{false, false}, playerDummy_1.getRef(), 0));
+				new int[]{4, 5},
+				new float[]{5L, 3L},
+				new boolean[]{false, false},
+				playerDummy_1.getRef(),
+				0,
+				1));
 		playerDummy_1.expectNoMessage();
 		playerDummy_2.expectNoMessage();
 		playerDummy_3.expectNoMessage();
 		theTable.tell(new Table.AdditionalInfoMsg(
-				new int[]{4, 6}, new float[]{100L, 2L}, new boolean[]{true, false}, playerDummy_2.getRef(), 9));
+				new int[]{4, 6},
+				new float[]{100L, 2L},
+				new boolean[]{true, false},
+				playerDummy_2.getRef(),
+				9,
+				1));
 		playerDummy_3.expectMessageClass(Player.RejectOfferMsg.class);
 		playerDummy_2.expectNoMessage();
 		playerDummy_1.expectNoMessage();
 		theTable.tell(new Table.AdditionalInfoMsg(
-				new int[]{5, 6}, new float[]{2L, 2L}, new boolean[]{false, false}, playerDummy_3.getRef(), 18));
+				new int[]{5, 6},
+				new float[]{2L, 2L},
+				new boolean[]{false, false},
+				playerDummy_3.getRef(),
+				1,
+				18));
 		playerDummy_1.expectNoMessage();
 		playerDummy_2.expectNoMessage();
 		playerDummy_3.expectNoMessage();
 
 
 		// playerDummy_1 now is run out off options:
-		theTable.tell(new Table.OfferMsg(0, 0L, playerDummy_3.getRef(), 18));
+		theTable.tell(new Table.OfferMsg(
+				0, 0L, playerDummy_3.getRef(), 18, 1));
 		Player.NegotiationsFinishedMsg response_1 = (Player.NegotiationsFinishedMsg) playerDummy_1.receiveMessage();
 		Player.NegotiationsFinishedMsg response_2 = (Player.NegotiationsFinishedMsg) playerDummy_2.receiveMessage();
 		Player.NegotiationsFinishedMsg response_3 = (Player.NegotiationsFinishedMsg) playerDummy_3.receiveMessage();

@@ -65,11 +65,12 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	{
 		public final ActorRef<Table.Protocol> _replyTo;
 		public final int _tableId;
-
-		protected NegotiationsMsg(ActorRef<Table.Protocol> replyTo, int tableId)
+		public final int _iterationId;
+		protected NegotiationsMsg(ActorRef<Table.Protocol> replyTo, int tableId, int iterationId)
 		{
 			this._replyTo = replyTo;
 			this._tableId = tableId;
+			this._iterationId = iterationId;
 		}
 	}
 
@@ -77,10 +78,13 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	public static class AdditionalInfoRequestMsg extends NegotiationsMsg
 	{
 		public final int[] _otherDigits;
-
-		public AdditionalInfoRequestMsg(int[] otherDigits, ActorRef<Table.Protocol> replyTo, int tableId)
+		public AdditionalInfoRequestMsg(
+				int[] otherDigits,
+				ActorRef<Table.Protocol> replyTo,
+				int tableId,
+				int iterationId)
 		{
-			super(replyTo, tableId);
+			super(replyTo, tableId, iterationId);
 			this._otherDigits = otherDigits;
 		}
 	}
@@ -89,10 +93,9 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	public static class RejectOfferMsg extends NegotiationsMsg
 	{
 		public final int _rejectedDigit;
-
-		public RejectOfferMsg(int rejectedDigit, ActorRef<Table.Protocol> replyTo, int tableId)
+		public RejectOfferMsg(int rejectedDigit, ActorRef<Table.Protocol> replyTo, int tableId, int iterationId)
 		{
-			super(replyTo, tableId);
+			super(replyTo, tableId, iterationId);
 			this._rejectedDigit = rejectedDigit;
 		}
 	}
@@ -101,10 +104,13 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	public static class NegotiationsPositiveMsg extends NegotiationsMsg
 	{
 		public final int _approvedDigit;
-
-		public NegotiationsPositiveMsg(int approvedDigit, ActorRef<Table.Protocol> replyTo, int tableId)
+		public NegotiationsPositiveMsg(
+				int approvedDigit,
+				ActorRef<Table.Protocol> replyTo,
+				int tableId,
+				int iterationId)
 		{
-			super(replyTo, tableId);
+			super(replyTo, tableId, iterationId);
 			this._approvedDigit = approvedDigit;
 		}
 	}
@@ -113,10 +119,13 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	public static class NegotiationsFinishedMsg extends NegotiationsMsg
 	{
 		public final int _resultingDigit;
-
-		public NegotiationsFinishedMsg(int resultingDigit, ActorRef<Table.Protocol> replyTo, int tableId)
+		public NegotiationsFinishedMsg(
+				int resultingDigit,
+				ActorRef<Table.Protocol> replyTo,
+				int tableId,
+				int iterationId)
 		{
-			super(replyTo, tableId);
+			super(replyTo, tableId, iterationId);
 			this._resultingDigit = resultingDigit;
 		}
 	}
@@ -363,7 +372,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	private Behavior<Protocol> onAdditionalInfoRequest(AdditionalInfoRequestMsg msg) // specify
 	{
 		final int tableIndex = _tables.getIndex(msg._tableId);
-		if (_memory.isFinished(tableIndex))
+		if (_memory.isFinished(tableIndex, msg._iterationId))
 			return this;
 
 		final int length = msg._otherDigits.length;
@@ -377,7 +386,13 @@ public class Player extends AbstractBehavior<Player.Protocol>
 			collisions[i] = _memory.getCollision(tableIndex, digit);
 		}
 		msg._replyTo.tell(
-				new Table.AdditionalInfoMsg(msg._otherDigits, weights, collisions, getContext().getSelf(), _playerId)
+				new Table.AdditionalInfoMsg(
+						msg._otherDigits,
+						weights,
+						collisions,
+						getContext().getSelf(),
+						_playerId,
+						_memory.getIterationId())
 		);
 
 		return this;
@@ -399,9 +414,12 @@ public class Player extends AbstractBehavior<Player.Protocol>
 			{
 				_memory.setDigit(tableIndex, digit);
 				final ActorRef<Table.Protocol> tempTableRef = _tables.getAgent(tableIndex);
-				tempTableRef.tell(new Table.OfferMsg(digit,
+				tempTableRef.tell(new Table.OfferMsg(
+						digit,
 						_memory.getAward(tableIndex, digit),
-						getContext().getSelf(), _playerId));
+						getContext().getSelf(),
+						_playerId,
+						_memory.getIterationId()));
 				offerSent = true;
 				break; // Do not send any more offers to this Table
 			}
@@ -411,7 +429,8 @@ public class Player extends AbstractBehavior<Player.Protocol>
 			_memory.setDigit(tableIndex, 0);
 			final ActorRef<Table.Protocol> tempTableRef = _tables.getAgent(tableIndex);
 			// Send offer with a special value (zero)
-			tempTableRef.tell(new Table.OfferMsg(0, 0L, getContext().getSelf(), _playerId));
+			tempTableRef.tell(new Table.OfferMsg(
+					0, 0L, getContext().getSelf(), _playerId, _memory.getIterationId()));
 		}
 	}
 
@@ -424,13 +443,13 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	private Behavior<Protocol> onRejectOffer(RejectOfferMsg msg) // cancel
 	{
 		final int tableIndex = _tables.getIndex(msg._tableId);
-		if (_memory.isFinished(tableIndex))
+		if (_memory.isFinished(tableIndex, msg._iterationId))
 			return this;
 
 		final int rejectedDigit = msg._rejectedDigit;
 		{
 			final int myDigit = _memory.getDigit(tableIndex);
-			if(_memory.isFinished(tableIndex))
+			if(_memory.isFinished(tableIndex, msg._iterationId))
 			{
 				throw new BadRejectionException("Rejected digit is for a field that is already negotiated.",
 						msg._tableId, _playerId, rejectedDigit, myDigit);
@@ -457,7 +476,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	private Behavior<Protocol> onNegotiationsPositive(NegotiationsPositiveMsg msg) // winner
 	{
 		final int tableIndex = _tables.getIndex(msg._tableId);
-		if (_memory.isFinished(tableIndex))
+		if (_memory.isFinished(tableIndex, msg._iterationId))
 			return this;
 
 		final int approvedDigit = msg._approvedDigit;
@@ -469,12 +488,14 @@ public class Player extends AbstractBehavior<Player.Protocol>
 		if (_memory.alreadyAccepted(approvedDigit))
 		{
 			_memory.setCollision(tableIndex, approvedDigit);
-			tableRef.tell(new Table.WithdrawOfferMsg(approvedDigit, getContext().getSelf(), _playerId));
+			tableRef.tell(new Table.WithdrawOfferMsg(
+					approvedDigit, getContext().getSelf(), _playerId, _memory.getIterationId()));
 		}
 		else
 		{
 			_memory.setAccepted(tableIndex, approvedDigit);
-			tableRef.tell(new Table.AcceptNegotiationsResultsMsg(approvedDigit, getContext().getSelf(), _playerId));
+			tableRef.tell(new Table.AcceptNegotiationsResultsMsg(
+					approvedDigit, getContext().getSelf(), _playerId, _memory.getIterationId()));
 		}
 
 		return this;
@@ -489,7 +510,7 @@ public class Player extends AbstractBehavior<Player.Protocol>
 	private Behavior<Protocol> onNegotiationsFinished(NegotiationsFinishedMsg msg) // inserted
 	{
 		final int tableIndex = _tables.getIndex(msg._tableId);
-		if (_memory.isFinished(tableIndex))
+		if (_memory.isFinished(tableIndex, msg._iterationId))
 			return this;
 		final int resultingDigit = msg._resultingDigit;
 		if (resultingDigit != 0) // Finished with non-empty field

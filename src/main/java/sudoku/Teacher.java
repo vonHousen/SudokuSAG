@@ -370,28 +370,6 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	 */
 	private Behavior<Protocol> onTablesAreNotResponding(TablesAreNotRespondingMsg msg)
 	{
-		// StringBuilder tables = new StringBuilder();
-		// _sudoku.printNatural();
-		// for(int tableId : msg._tableIds)
-		// {
-		// 	tables.append(tableId).append(" ");
-		// 	//afterTableFinished(tableId);
-		// 	_tables.get(tableId).tell(new Table.WakeUpMsg());
-		// }
-		// //_memory.setTableIdsConsideredDead(msg._tableIds);
-		// System.out.println();
-		// System.out.println();
-		// System.out.println();
-		// getContext().getLog().info("Oh oh, table(s) not responding: " + tables);
-		// System.out.println();
-		// System.out.println();
-		// System.out.println();
-//
-		// _timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
-		// 		0, null));
-		// returnNewSolution();
-
-
 		return this;
 	}
 
@@ -406,14 +384,8 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		System.out.println();
 		System.out.println();
 
-		// final Sudoku newSolution = new Sudoku(_sudoku);
-		// _parent.tell(new SudokuSupervisor.IterationFinishedMsg(newSolution));
-
 		for(int tableId : _memory.getTablesNotFinished())
 			afterTableFinished(tableId);
-
-		//_timerManager.tell(new TimerManager.NewIterationStartedMsg(3000));
-		//returnNewSolution();
 
 		return this;
 	}
@@ -762,8 +734,6 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	 */
 	private void returnNewSolution()
 	{
-		//Sudoku newSolution = new Sudoku(_sudoku);
-		//_parent.tell(new SudokuSupervisor.IterationFinishedMsg(newSolution));
 		if (_sudoku.getEmptyFieldsCount() != 0)		// if sudoku is not solved
 		{
 			if (!_sudoku.equals(_prevSudoku))	// if previous solution is different from the current one
@@ -771,7 +741,6 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 				_memory.setNormalTables(getNormalTableIds(_sudoku));
 				_memory.reset();
 
-				//_prevSudoku.setBoard(_sudoku.getBoard());
 				_prevSudoku = new Sudoku(_sudoku);
 				prepareForNewSmallIterationAndRun();
 			}
@@ -807,16 +776,8 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 	/** Teacher marks Table as finished and checks if it was the last one - if so, calls returnNewSolution(). */
 	private void afterTableFinished(int tableId)
 	{
-		final int tablesLeftCount =  _memory.addTableFinished(tableId);
-		if(tablesLeftCount < _tables.size()/4 && tablesLeftCount > 0)
+		if(_memory.addTableFinished(tableId) == 0)
 		{
-			/*_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
-					200, _memory.getTablesNotFinished()));*/
-		}
-		else if(tablesLeftCount == 0)
-		{
-			/*_timerManager.tell(new TimerManager.RemindToCheckTablesMsg(
-					0, null));*/
 			returnNewSolution();
 		}
 	}

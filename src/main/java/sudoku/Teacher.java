@@ -708,7 +708,7 @@ public class Teacher extends AbstractBehavior<Teacher.Protocol>
 		{
 			rewardSum += playerRewardsUnit[i]*(sudokuSize - emptyFieldsCount[i]);
 		}
-		final float compensationFactor = -rewardSum/(3*filledCount);
+		final float compensationFactor = -rewardSum/filledCount;
 		ActorRef<Player.Protocol> playerRef;
 		for (int i = 0; i < playerCount; ++i)
 		{

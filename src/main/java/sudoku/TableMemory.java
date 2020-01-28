@@ -98,6 +98,11 @@ public class TableMemory
 
     public boolean noRequestsPending() {return _requestCount[0] == 0 && _requestCount[1] == 0 && _requestCount[2] == 0;}
 
+    public void clearOffer(int n)
+    {
+        _offers[n] = 0;
+    }
+
     public void setOffer(int n, int digit, float weight)
     {
         if (_offers[n] != 0)

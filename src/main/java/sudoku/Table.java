@@ -328,6 +328,7 @@ public class Table extends AbstractBehavior<Table.Protocol>
 
 		if (_memory.isDenied(digit)) // Digit causes conflict for some Player
 		{
+			_memory.clearOffer(index); // Lack of this line causes some rare bizarre exceptions
 			player.tell(new Player.RejectOfferMsg(digit, getContext().getSelf(), _tableId));
 			return this;
 		}
